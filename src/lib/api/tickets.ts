@@ -92,3 +92,11 @@ export async function getCategories(tenantSlug: string): Promise<Category[]> {
   const { data } = await api.get<Category[]>(`api/v1/${tenantSlug}/categories`);
   return data;
 }
+
+export async function getTicketAnalytics(tenantSlug: string, days = 30): Promise<import("@/types/tickets").TicketAnalytics> {
+  const { data } = await api.get<import("@/types/tickets").TicketAnalytics>(
+    `api/v1/${tenantSlug}/tickets/analytics`,
+    { params: { days } },
+  );
+  return data;
+}

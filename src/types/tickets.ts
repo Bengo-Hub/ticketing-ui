@@ -103,3 +103,15 @@ export interface AddCommentData {
   content: string;
   comment_type?: 'public' | 'internal';
 }
+
+export interface TrendPoint {
+  date: string;
+  created: number;
+  resolved: number;
+}
+
+export interface TicketAnalytics {
+  by_status: Record<string, number>;
+  by_priority: Record<string, number>;
+  trend: TrendPoint[];
+}

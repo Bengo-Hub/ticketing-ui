@@ -7,6 +7,7 @@ import {
   createTicket,
   getCategories,
   getTicket,
+  getTicketAnalytics,
   getTicketComments,
   getTickets,
   getTicketStats,
@@ -120,5 +121,12 @@ export function useAddComment(tenantSlug: string, ticketId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["ticket-comments", tenantSlug, ticketId] });
     },
+  });
+}
+
+export function useTicketAnalytics(tenantSlug: string, days = 30) {
+  return useQuery({
+    queryKey: ["ticket-analytics", tenantSlug, days],
+    queryFn: () => getTicketAnalytics(tenantSlug, days),
   });
 }
