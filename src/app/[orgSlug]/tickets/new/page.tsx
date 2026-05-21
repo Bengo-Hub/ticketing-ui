@@ -24,8 +24,8 @@ import { toast } from "sonner";
 const schema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  priority: z.enum(["low", "normal", "high", "urgent", "critical"]).default("normal"),
-  channel: z.enum(["web", "email", "api", "chat", "phone", "internal"]).default("web"),
+  priority: z.enum(["low", "normal", "high", "urgent", "critical"]),
+  channel: z.enum(["web", "email", "api", "chat", "phone", "internal"]),
   category_id: z.string().optional(),
 });
 

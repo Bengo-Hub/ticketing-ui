@@ -24,7 +24,7 @@ const schema = z.object({
   full_name: z.string().min(2, "Name required"),
   email: z.string().email("Valid email required"),
   user_id: z.string().min(1, "User ID required"),
-  role: z.enum(["agent", "supervisor", "admin"]).default("agent"),
+  role: z.enum(["agent", "supervisor", "admin"]),
 });
 
 type FormData = z.infer<typeof schema>;

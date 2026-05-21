@@ -25,7 +25,7 @@ import { toast } from "sonner";
 
 const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty"),
-  comment_type: z.enum(["public", "internal"]).default("public"),
+  comment_type: z.enum(["public", "internal"]),
 });
 
 type CommentFormData = z.infer<typeof commentSchema>;
