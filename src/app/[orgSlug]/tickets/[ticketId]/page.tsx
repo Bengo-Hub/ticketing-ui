@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTicket, useTicketComments, useAddComment, useUpdateTicketStatus } from "@/hooks/useTickets";
+import { useCommentStream } from "@/hooks/useSSE";
+import { useAuthStore } from "@/store/auth";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
@@ -47,6 +49,9 @@ export default function TicketDetailPage() {
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
   const ticketId = params.ticketId as string;
+
+  const token = useAuthStore((s) => s.session?.accessToken ?? null);
+  useCommentStream(orgSlug, ticketId, token);
 
   const { data: ticket, isLoading, isError } = useTicket(orgSlug, ticketId);
   const { data: comments = [], isLoading: commentsLoading } = useTicketComments(orgSlug, ticketId);

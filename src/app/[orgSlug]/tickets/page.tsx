@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTickets } from "@/hooks/useTickets";
+import { useTicketStream } from "@/hooks/useSSE";
+import { useAuthStore } from "@/store/auth";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import {
@@ -42,6 +44,8 @@ export default function TicketsPage() {
   const params = useParams();
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
+  const token = useAuthStore((s) => s.session?.accessToken ?? null);
+  useTicketStream(orgSlug, token);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<TicketStatus | "">("");
