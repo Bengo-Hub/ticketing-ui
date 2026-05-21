@@ -3,6 +3,7 @@
 import { cn, orgRoute } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 import {
+  BookOpen,
   ClipboardList,
   HeadphonesIcon,
   LayoutDashboard,
@@ -25,6 +26,7 @@ interface SidebarProps {
 const mainNav = [
   { id: "tickets", label: "All Tickets", href: "/tickets", icon: ClipboardList },
   { id: "new-ticket", label: "Create Ticket", href: "/tickets/new", icon: PlusCircle },
+  { id: "kb", label: "Knowledge Base", href: "/kb", icon: BookOpen },
 ];
 
 const agentNav = [
