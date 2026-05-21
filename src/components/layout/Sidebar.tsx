@@ -37,6 +37,7 @@ const adminNav = [
   { id: "admin", label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { id: "admin-teams", label: "Teams", href: "/admin/teams", icon: Users },
   { id: "admin-agents", label: "Agents", href: "/admin/agents", icon: Shield },
+  { id: "admin-kb", label: "Knowledge Base", href: "/admin/kb", icon: BookOpen },
   { id: "admin-settings", label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
