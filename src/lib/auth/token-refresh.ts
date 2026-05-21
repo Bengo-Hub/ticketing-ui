@@ -1,0 +1,44 @@
+import { useAuthStore } from "@/store/auth";
+import { refreshTokens } from "@/lib/auth/api";
+
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+export async function refreshAccessToken(): Promise<string | null> {
+  const { session } = useAuthStore.getState();
+  if (!session?.refreshToken) return null;
+
+  if (isRefreshing && refreshPromise) return refreshPromise;
+
+  isRefreshing = true;
+  refreshPromise = doRefresh(session.refreshToken);
+  try {
+    return await refreshPromise;
+  } finally {
+    isRefreshing = false;
+    refreshPromise = null;
+  }
+}
+
+async function doRefresh(currentRefreshToken: string): Promise<string | null> {
+  try {
+    const data = await refreshTokens(currentRefreshToken);
+    const newAccessToken = data.access_token;
+    const newRefreshToken = data.refresh_token || currentRefreshToken;
+    const expiresIn = data.expires_in || 3600;
+    const currentSession = useAuthStore.getState().session;
+    if (currentSession) {
+      useAuthStore.setState({
+        session: {
+          ...currentSession,
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+          expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+        },
+      });
+    }
+    return newAccessToken;
+  } catch {
+    return null;
+  }
+}
