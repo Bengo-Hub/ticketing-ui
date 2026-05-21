@@ -28,6 +28,7 @@ export interface Ticket {
   sla_resolution_due_at?: string;
   sla_response_breached: boolean;
   sla_resolution_breached: boolean;
+  first_response_at?: string;
   external_reference?: string;
   created_at: string;
   updated_at: string;

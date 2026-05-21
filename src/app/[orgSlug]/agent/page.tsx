@@ -5,6 +5,7 @@ import { useTickets, useTicketStats } from "@/hooks/useTickets";
 import { useAuthStore } from "@/store/auth";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
+import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
 import {
   Card,
   CardContent,
@@ -138,6 +139,7 @@ export default function AgentInboxPage() {
                       </span>
                       <TicketStatusBadge status={ticket.status} />
                       <PriorityBadge priority={ticket.priority} />
+                      <SLAStatusBadge ticket={ticket} />
                     </div>
                     <p className="text-sm font-semibold text-foreground truncate">{ticket.subject}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -182,6 +184,7 @@ export default function AgentInboxPage() {
                         #{ticket.ticket_number}
                       </span>
                       <TicketStatusBadge status={ticket.status} />
+                      <SLAStatusBadge ticket={ticket} />
                     </div>
                     <p className="text-sm font-semibold text-foreground truncate">{ticket.subject}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">

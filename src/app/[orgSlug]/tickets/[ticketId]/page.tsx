@@ -7,6 +7,8 @@ import { z } from "zod";
 import { useTicket, useTicketComments, useAddComment, useUpdateTicketStatus } from "@/hooks/useTickets";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
+import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
+import { SLASidebar } from "@/components/tickets/SLASidebar";
 import {
   Button,
   Card,
@@ -122,11 +124,7 @@ export default function TicketDetailPage() {
             </span>
             <TicketStatusBadge status={ticket.status} />
             <PriorityBadge priority={ticket.priority} />
-            {ticket.sla_response_breached && (
-              <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 text-xs font-semibold">
-                SLA Breached
-              </span>
-            )}
+            <SLAStatusBadge ticket={ticket} />
           </div>
           <h1 className="text-xl font-black text-foreground break-words">{ticket.subject}</h1>
         </div>
@@ -146,6 +144,18 @@ export default function TicketDetailPage() {
           </select>
         </div>
       </div>
+
+      {/* SLA breach banner */}
+      {(ticket.sla_response_breached || ticket.sla_resolution_breached) && (
+        <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <p className="text-sm font-semibold">
+            {ticket.sla_resolution_breached
+              ? "Resolution SLA has been breached."
+              : "First response SLA has been breached."}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content */}
@@ -297,55 +307,11 @@ export default function TicketDetailPage() {
           </Card>
 
           {/* SLA */}
-          {(ticket.sla_response_due_at || ticket.sla_resolution_due_at) && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  SLA
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {ticket.sla_response_due_at && (
-                  <div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Response Due</span>
-                      <span
-                        className={
-                          ticket.sla_response_breached
-                            ? "font-bold text-destructive"
-                            : "font-medium"
-                        }
-                      >
-                        {formatDateTime(ticket.sla_response_due_at)}
-                      </span>
-                    </div>
-                    {ticket.sla_response_breached && (
-                      <p className="text-xs text-destructive mt-0.5">Response SLA breached</p>
-                    )}
-                  </div>
-                )}
-                {ticket.sla_resolution_due_at && (
-                  <div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Resolution Due</span>
-                      <span
-                        className={
-                          ticket.sla_resolution_breached
-                            ? "font-bold text-destructive"
-                            : "font-medium"
-                        }
-                      >
-                        {formatDateTime(ticket.sla_resolution_due_at)}
-                      </span>
-                    </div>
-                    {ticket.sla_resolution_breached && (
-                      <p className="text-xs text-destructive mt-0.5">Resolution SLA breached</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardContent className="pt-4">
+              <SLASidebar ticket={ticket} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
