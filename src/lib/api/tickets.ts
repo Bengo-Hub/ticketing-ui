@@ -93,6 +93,64 @@ export async function getCategories(tenantSlug: string): Promise<Category[]> {
   return data;
 }
 
+// ── Public customer portal (no auth required) ───────────────────────────────
+
+export interface PublicCreateTicketData {
+  subject: string;
+  description: string;
+  priority?: string;
+  customer_name: string;
+  customer_email: string;
+  tenant_slug: string;
+  attachments?: File[];
+}
+
+export interface CustomerTicketsResponse {
+  data: Ticket[];
+  total: number;
+}
+
+export async function createPublicTicket(payload: PublicCreateTicketData): Promise<Ticket> {
+  const { data } = await api.post<Ticket>(`api/v1/public/tickets`, payload);
+  return data;
+}
+
+export async function getCustomerTickets(emailToken: string): Promise<CustomerTicketsResponse> {
+  const { data } = await api.get<CustomerTicketsResponse>(`api/v1/public/tickets`, {
+    headers: { "X-Email-Token": emailToken },
+  });
+  return data;
+}
+
+export async function getCustomerTicket(emailToken: string, ticketId: string): Promise<Ticket> {
+  const { data } = await api.get<Ticket>(`api/v1/public/tickets/${ticketId}`, {
+    headers: { "X-Email-Token": emailToken },
+  });
+  return data;
+}
+
+export async function addPublicComment(
+  emailToken: string,
+  ticketId: string,
+  content: string,
+): Promise<TicketComment> {
+  const { data } = await api.post<TicketComment>(
+    `api/v1/public/tickets/${ticketId}/comments`,
+    { content, comment_type: "public" },
+    { headers: { "X-Email-Token": emailToken } },
+  );
+  return data;
+}
+
+export async function closePublicTicket(emailToken: string, ticketId: string): Promise<Ticket> {
+  const { data } = await api.post<Ticket>(
+    `api/v1/public/tickets/${ticketId}/close`,
+    {},
+    { headers: { "X-Email-Token": emailToken } },
+  );
+  return data;
+}
+
 export async function getTicketAnalytics(tenantSlug: string, days = 30): Promise<import("@/types/tickets").TicketAnalytics> {
   const { data } = await api.get<import("@/types/tickets").TicketAnalytics>(
     `api/v1/${tenantSlug}/tickets/analytics`,
