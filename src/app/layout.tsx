@@ -13,6 +13,12 @@ export const metadata: Metadata = {
     template: "%s | BengoBox Ticketing",
   },
   description: "Multi-tenant customer support and helpdesk ticketing for the BengoBox ecosystem.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ticketing",
+  },
 };
 
 export const viewport: Viewport = {
@@ -20,6 +26,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

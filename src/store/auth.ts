@@ -80,8 +80,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return;
     }
     if (user && session) {
-      set({ status: "authenticated" });
-      return;
+      const expiresAt = session.expiresAt ? new Date(session.expiresAt).getTime() : 0;
+      if (expiresAt && Date.now() < expiresAt - 60_000) {
+        set({ status: "authenticated" });
+        return;
+      }
     }
     try {
       set({ status: "loading", error: null });
