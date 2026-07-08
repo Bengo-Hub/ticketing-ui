@@ -9,10 +9,10 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 
 export const metadata: Metadata = {
   title: {
-    default: "BengoBox Ticketing",
-    template: "%s | BengoBox Ticketing",
+    default: "Codevertex Ticketing",
+    template: "%s | Codevertex Ticketing",
   },
-  description: "Multi-tenant customer support and helpdesk ticketing for the BengoBox ecosystem.",
+  description: "Multi-tenant customer support and helpdesk ticketing for the Codevertex ecosystem.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

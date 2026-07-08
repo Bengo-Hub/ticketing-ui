@@ -41,7 +41,7 @@ export async function GET(
 
   const appName = tenant?.orgName
     ? `${tenant.orgName} Ticketing`
-    : 'BengoBox Ticketing';
+    : 'Codevertex Ticketing';
 
   const manifest = {
     name: appName,

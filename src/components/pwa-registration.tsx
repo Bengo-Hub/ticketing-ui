@@ -52,7 +52,7 @@ export function PWARegistration() {
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
-  const appName = tenant?.orgName ? `${tenant.orgName} Ticketing` : 'BengoBox Ticketing';
+  const appName = tenant?.orgName ? `${tenant.orgName} Ticketing` : 'Codevertex Ticketing';
   const logoUrl = tenant?.logoUrl ?? '/logo.png';
 
   // Inject dynamic manifest link

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**System Purpose**: Multi-tenant customer support and helpdesk ticketing frontend for BengoBox ecosystem. Provides intuitive interfaces for customers, agents, supervisors, and administrators to create, manage, and resolve support tickets with real-time updates, knowledge base access, and comprehensive analytics.
+**System Purpose**: Multi-tenant customer support and helpdesk ticketing frontend for Codevertex ecosystem. Provides intuitive interfaces for customers, agents, supervisors, and administrators to create, manage, and resolve support tickets with real-time updates, knowledge base access, and comprehensive analytics.
 
 **Key Capabilities**:
 - Customer ticket creation and tracking portal
