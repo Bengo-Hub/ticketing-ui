@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useArticles, useDeleteArticle } from "@/hooks/useKB";
+import { useAdminArticles, useDeleteArticle } from "@/hooks/useKB";
 import {
   Button,
   Card,
@@ -49,7 +49,7 @@ export default function AdminKBPage() {
   const [status, setStatus] = useState<ArticleStatus | "">("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError } = useArticles({
+  const { data, isLoading, isError } = useAdminArticles({
     tenantSlug: orgSlug,
     search: search || undefined,
     status: status || undefined,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useArticle, useUpdateArticle } from "@/hooks/useKB";
+import { useAdminArticle, useUpdateArticle } from "@/hooks/useKB";
 import { ArticleForm, articleDataToFormValues, formValuesToPayload } from "@/components/kb/ArticleForm";
 import type { ArticleFormData } from "@/components/kb/ArticleForm";
 import { orgRoute } from "@/lib/utils";
@@ -15,7 +15,7 @@ export default function EditKBArticlePage() {
   const orgSlug = params.orgSlug as string;
   const articleId = params.articleId as string;
 
-  const { data: article, isLoading, isError } = useArticle(orgSlug, articleId);
+  const { data: article, isLoading, isError } = useAdminArticle(orgSlug, articleId);
   const updateArticle = useUpdateArticle(orgSlug, articleId);
 
   const handleSubmit = async (data: ArticleFormData) => {
