@@ -233,7 +233,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       try { localStorage.removeItem("tenantSlug"); } catch { /* no-op */ }
       try { localStorage.removeItem("is_platform_owner"); } catch { /* no-op */ }
       try { sessionStorage.clear(); } catch { /* no-op */ }
-      window.location.href = buildLogoutUrl("https://accounts.codevertexitsolutions.com");
+      window.location.href = buildLogoutUrl("https://accounts.codevertexafrica.com");
     }
   },
 }));

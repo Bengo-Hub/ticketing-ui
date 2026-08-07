@@ -1,7 +1,7 @@
 import type { AuthResponse } from "@/lib/auth/types";
 
 const SSO_BASE_URL =
-  process.env.NEXT_PUBLIC_SSO_URL ?? "https://sso.codevertexitsolutions.com";
+  process.env.NEXT_PUBLIC_SSO_URL ?? "https://sso.codevertexafrica.com";
 const SSO_CLIENT_ID = process.env.NEXT_PUBLIC_SSO_CLIENT_ID ?? "ticketing-ui";
 
 export function buildAuthorizeUrl(params: {

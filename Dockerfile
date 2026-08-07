@@ -13,8 +13,8 @@ RUN npm install -g pnpm@10
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG NEXT_PUBLIC_API_URL=https://ticketingapi.codevertexitsolutions.com
-ARG NEXT_PUBLIC_SSO_URL=https://sso.codevertexitsolutions.com
+ARG NEXT_PUBLIC_API_URL=https://ticketingapi.codevertexafrica.com
+ARG NEXT_PUBLIC_SSO_URL=https://sso.codevertexafrica.com
 ARG NEXT_PUBLIC_SSO_CLIENT_ID=ticketing-ui
 ARG NEXT_PUBLIC_AUTH_API_URL=
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
