@@ -1,13 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/base";
 import { cn, orgRoute } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
-import { Bell, ChevronDown, LogIn, LogOut, Menu, Settings, UserIcon } from "lucide-react";
+import { Bell, ChevronDown, LogIn, Menu, Settings, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useBranding } from "@/providers/branding-provider";
+import { useVisibleServices, AppSwitcherGrid, type ServiceKey } from "@bengo-hub/shared-ui-lib/app-switcher";
+import { AccountPanel } from "@bengo-hub/shared-ui-lib/account-panel";
+
+const SERVICE_URLS: Partial<Record<ServiceKey, string>> = {
+  pos: process.env.NEXT_PUBLIC_POS_UI_URL ?? "https://pos.codevertexafrica.com",
+  inventory: process.env.NEXT_PUBLIC_INVENTORY_UI_URL ?? "https://inventory.codevertexafrica.com",
+  treasury: process.env.NEXT_PUBLIC_TREASURY_UI_URL ?? "https://books.codevertexafrica.com",
+  marketflow: process.env.NEXT_PUBLIC_MARKETFLOW_UI_URL ?? "https://marketflow.codevertexafrica.com",
+  erp: process.env.NEXT_PUBLIC_ERP_UI_URL ?? "https://erp.codevertexafrica.com",
+  ordering: process.env.NEXT_PUBLIC_ORDERING_UI_URL ?? "https://ordering.codevertexafrica.com",
+  auth: process.env.NEXT_PUBLIC_SSO_URL ?? "https://sso.codevertexafrica.com",
+  subscriptions: process.env.NEXT_PUBLIC_SUBSCRIPTIONS_UI_URL ?? "https://pricing.codevertexafrica.com",
+  projects: process.env.NEXT_PUBLIC_PROJECTS_UI_URL ?? "https://projects.codevertexafrica.com",
+  afya: process.env.NEXT_PUBLIC_HOSPITAL_UI_URL ?? "https://afya.codevertexafrica.com",
+};
 
 function displayName(user: { fullName?: string; firstName?: string; email?: string } | null): string {
   if (!user) return "Account";
@@ -26,9 +41,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   const redirectToSSO = useAuthStore((s) => s.redirectToSSO);
   const { getServiceTitle } = useBranding();
   const [profileOpen, setProfileOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
   const name = displayName(user);
   const role = (user as { roles?: string[] } | null)?.roles?.[0] || (user as { role?: string } | null)?.role;
+  // The App Store shows every real service to every authenticated user in the tenant — each
+  // destination service already enforces its own RBAC + subscription gating on arrival, so
+  // pre-filtering the directory here just hid apps that were actually reachable.
+  const services = useVisibleServices({ orgSlug, urls: SERVICE_URLS, canManageLinks: true });
 
   return (
     <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between">
@@ -54,11 +72,12 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="h-8 w-[1px] bg-border mx-1 hidden sm:block" />
 
         {user ? (
-          <div className="relative" ref={profileRef}>
+          <div className="relative">
             <button
               type="button"
               onClick={() => setProfileOpen((v) => !v)}
               className="flex items-center gap-3 rounded-2xl hover:bg-accent p-1.5 transition-all group"
+              aria-expanded={profileOpen}
             >
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-xs shadow-lg">
                 {name[0]?.toUpperCase() ?? <UserIcon className="h-4 w-4" />}
@@ -74,39 +93,29 @@ export function Header({ onMenuClick }: HeaderProps) {
               />
             </button>
 
-            {profileOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-2xl p-2 shadow-2xl border border-border bg-card">
-                  <div className="mb-2 px-3 py-2">
-                    <p className="text-sm font-black text-foreground">{name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate font-bold uppercase tracking-widest mt-0.5">
-                      {role || "Agent"}
-                    </p>
-                  </div>
-                  <div className="h-[1px] bg-border my-2" />
-                  <Link
-                    href={orgRoute(orgSlug, "/admin/settings")}
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold text-muted-foreground hover:bg-accent transition-all group"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      void logout();
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold text-destructive hover:bg-destructive/10 transition-all"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </button>
-                </div>
-              </>
-            )}
+            <AccountPanel
+              open={profileOpen}
+              onClose={() => setProfileOpen(false)}
+              user={{ name, email: (user as { email?: string })?.email ?? "" }}
+              onSignOut={() => {
+                setProfileOpen(false);
+                void logout();
+              }}
+            >
+              <div className="flex flex-col gap-3">
+                <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {role || "Agent"}
+                </p>
+                <Link
+                  href={orgRoute(orgSlug, "/admin/settings")}
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
+                >
+                  <Settings className="h-4 w-4" /> Settings
+                </Link>
+                <AppSwitcherGrid services={services} onNavigate={() => setProfileOpen(false)} />
+              </div>
+            </AccountPanel>
           </div>
         ) : (
           <Button size="sm" onClick={() => void redirectToSSO(undefined, orgSlug)} className="rounded-xl px-4">
