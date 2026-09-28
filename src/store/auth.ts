@@ -87,6 +87,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
     }
+    // Expired token on reload: renew it with the refresh token (one small call) instead of a
+    // full SSO sign-in; a known profile is kept. Dynamic import: token-refresh imports this store.
+    const expiringOnLoad = !session.expiresAt || Date.now() >= new Date(session.expiresAt).getTime() - 60_000;
+    const renewedOnLoad = session.refreshToken && expiringOnLoad
+      ? await (await import("@/lib/auth/token-refresh")).refreshAccessToken()
+      : null;
+    if (renewedOnLoad) {
+      if (user) {
+        set({ status: "authenticated", lastAuthenticatedAt: Date.now() });
+        return;
+      }
+    }
     try {
       set({ status: "loading", error: null });
       const response = await fetchProfile();
