@@ -1,3 +1,5 @@
+import { serviceBrandingMap, type ServiceBrandingEntry } from "@bengo-hub/shared-ui-lib/branding";
+
 const AUTH_API_URL =
   process.env.NEXT_PUBLIC_AUTH_API_URL ||
   process.env.NEXT_PUBLIC_SSO_URL ||
@@ -11,6 +13,8 @@ export interface TenantBrand {
   primaryColor: string | null;
   secondaryColor: string | null;
   orgName: string;
+  /** The tenant's own app names (metadata service_branding, set in Accounts > Branding). */
+  serviceBranding?: Record<string, ServiceBrandingEntry>;
 }
 
 interface TenantBrandMetadata {
@@ -46,6 +50,7 @@ export function parseBrandFromTenant(t: TenantResponse): TenantBrand {
     primaryColor: typeof primaryColor === "string" ? primaryColor : null,
     secondaryColor: typeof secondaryColor === "string" ? secondaryColor : null,
     orgName: typeof orgName === "string" ? orgName : t.name ?? "",
+    serviceBranding: serviceBrandingMap(t.metadata),
   };
 }
 
