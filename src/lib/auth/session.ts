@@ -1,6 +1,6 @@
 import type { SessionTokens, UserProfile } from "./types";
 
-const AUTH_STORAGE_KEY = "ticketing_auth";
+export const AUTH_STORAGE_KEY = "ticketing_auth";
 
 interface PersistedAuthState {
   session: SessionTokens | null;

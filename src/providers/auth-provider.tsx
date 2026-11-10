@@ -9,6 +9,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useMe } from "@/hooks/useMe";
 import { setOn401 } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth";
+import { AUTH_STORAGE_KEY, reloadSessionFromStorage } from "@/lib/auth/token-refresh";
+import { watchSessionAcrossTabs } from "@bengo-hub/shared-ui-lib/auth";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -80,6 +82,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     void initializeAuth();
   }, [initializeAuth]);
+
+  // Another tab renewed or replaced the session: load it here so this tab never sends a
+  // rotated-away token. The API client reads the token from the store on every request.
+  useEffect(() => watchSessionAcrossTabs(AUTH_STORAGE_KEY, reloadSessionFromStorage), []);
 
   useEffect(() => {
     setOn401(() => {
