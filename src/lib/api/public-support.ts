@@ -106,20 +106,48 @@ export function createPublicTicket(
   return post<PublicTicketResult>(ticketURL(tenantSlug), { ...input, channel: "web" }, { "X-OTP-Token": otpToken });
 }
 
-/** Reads a ticket's public view by its number. */
-export function getPublicTicket(tenantSlug: string, ticketNumber: string): Promise<PublicTicketView> {
-  return send<PublicTicketView>(ticketURL(tenantSlug, ticketNumber), { method: "GET" });
+/** The header ticketing-api reads a ticket access token from. */
+const TICKET_ACCESS_HEADER = "X-Ticket-Access-Token";
+
+export interface TicketAccess {
+  access_token: string;
+  expires_at: string;
+  ticket: PublicTicketView;
 }
 
 /**
- * Adds the requester's reply. ticketing-api accepts it only when the token's verified email is
- * the ticket's requester email, and the token works once, so each reply needs a fresh code.
+ * Trades the one-use code token for a ticket access token (about 30 minutes) scoped to this
+ * ticket and email. ticketing-api answers 404 both for a missing ticket and for an email that
+ * is not the ticket's requester.
  */
-export function addPublicReply(
+export async function requestTicketAccess(
   tenantSlug: string,
   ticketNumber: string,
   otpToken: string,
+): Promise<TicketAccess> {
+  const res = await post<Partial<TicketAccess>>(`${ticketURL(tenantSlug, ticketNumber)}/access`, {}, {
+    "X-OTP-Token": otpToken,
+  });
+  if (!res.access_token || !res.ticket) {
+    throw new PublicSupportError("We could not open this ticket. Please try again.", 500);
+  }
+  return res as TicketAccess;
+}
+
+/** Reads the ticket's public view with a ticket access token. */
+export function getPublicTicket(tenantSlug: string, ticketNumber: string, accessToken: string): Promise<PublicTicketView> {
+  return send<PublicTicketView>(ticketURL(tenantSlug, ticketNumber), {
+    method: "GET",
+    headers: { [TICKET_ACCESS_HEADER]: accessToken },
+  });
+}
+
+/** Adds the requester's reply with the ticket access token, which works until it expires. */
+export function addPublicReply(
+  tenantSlug: string,
+  ticketNumber: string,
+  accessToken: string,
   content: string,
 ): Promise<{ comment_id?: string; created_at?: string }> {
-  return post(`${ticketURL(tenantSlug, ticketNumber)}/comments`, { content }, { "X-OTP-Token": otpToken });
+  return post(`${ticketURL(tenantSlug, ticketNumber)}/comments`, { content }, { [TICKET_ACCESS_HEADER]: accessToken });
 }

@@ -9,8 +9,10 @@ import {
   PublicSupportError,
   addPublicReply,
   getPublicTicket,
+  requestTicketAccess,
   sendSupportCode,
   verifySupportCode,
+  type PublicTicketView,
 } from "@/lib/api/public-support";
 import {
   Badge,
@@ -28,18 +30,17 @@ import {
 import { CheckCircle2, Loader2 } from "lucide-react";
 
 /**
- * A customer's view of one ticket, built on ticketing-api's public routes: read by ticket
- * number, and reply with a one-use token from an email code. The customer gives the ticket
- * number and their email (a link can carry ?org=&ticket=), confirms the email with a six-digit
- * code, and then sees the ticket. ticketing-api accepts a reply only from the ticket's requester
- * email, and each token works once, so every reply after the first asks for a new code.
+ * A customer's view of one ticket. The customer gives the ticket number and their email (a link
+ * can carry ?org=&ticket=) and confirms the email with a six-digit code. ticketing-api trades the
+ * code's one-use token for a ticket access token, issued only when that email is the ticket's
+ * requester and valid for about 30 minutes. The page reads the ticket and posts replies with it,
+ * so one code covers the visit; when it expires the customer confirms the email again.
  */
 
 const RESEND_SECONDS = 45;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Step = "find" | "code" | "ticket";
-type ReplyStage = "write" | "code";
 
 function statusVariant(status: string): "default" | "secondary" | "success" | "warning" | "outline" {
   switch (status) {
@@ -73,6 +74,10 @@ function message(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback;
 }
 
+function isExpired(err: unknown): boolean {
+  return err instanceof PublicSupportError && err.status === 401;
+}
+
 export default function TrackTicketPage() {
   return (
     <Suspense fallback={null}>
@@ -100,15 +105,16 @@ function TrackTicket() {
   const [email, setEmail] = useState("");
   const [tenant, setTenant] = useState<TenantBrand | null>(null);
   const [code, setCode] = useState("");
-  // The verified one-use token. It is spent by the first reply attempt, whatever its outcome.
-  const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
+  // The ticket access token and the view it was issued with.
+  const [access, setAccess] = useState<string | null>(null);
+  const [initial, setInitial] = useState<PublicTicketView | null>(null);
+
   const [reply, setReply] = useState("");
-  const [replyStage, setReplyStage] = useState<ReplyStage>("write");
-  const [replyCode, setReplyCode] = useState("");
   const [replyError, setReplyError] = useState<string | null>(null);
   const [replySent, setReplySent] = useState(false);
 
@@ -123,9 +129,11 @@ function TrackTicket() {
   }, [cooldown]);
 
   const ticket = useQuery({
-    queryKey: ["public-ticket", tenant?.slug, ticketNumber],
-    queryFn: () => getPublicTicket(tenant!.slug, ticketNumber),
-    enabled: step === "ticket" && !!tenant,
+    queryKey: ["public-ticket", tenant?.slug, ticketNumber, access],
+    queryFn: () => getPublicTicket(tenant!.slug, ticketNumber, access!),
+    enabled: step === "ticket" && !!tenant && !!access,
+    initialData: initial ?? undefined,
+    retry: false,
   });
 
   async function run(fn: () => Promise<void>, onError: (msg: string) => void = setError) {
@@ -140,10 +148,36 @@ function TrackTicket() {
     }
   }
 
+  // An expired or refused access token sends the customer back to confirm the email again,
+  // keeping any reply they were writing.
+  async function reverify(reason: string) {
+    setAccess(null);
+    setInitial(null);
+    setCode("");
+    setNotice(reason);
+    setStep("code");
+    if (tenant && cooldown <= 0) {
+      try {
+        await sendSupportCode(tenant.slug, email);
+        setCooldown(RESEND_SECONDS);
+      } catch (err) {
+        setError(message(err, "We could not send a new code. Please try again."));
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (step === "ticket" && ticket.isError && isExpired(ticket.error)) {
+      void reverify("Your access to this ticket has ended. We sent a new code to confirm it is still you.");
+    }
+    // reverify only reads state that is already current when the query fails.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, ticket.isError, ticket.error]);
+
   function onFind(e: React.FormEvent) {
     e.preventDefault();
     const slug = org.trim().toLowerCase();
-    const number = ticketNumber.trim();
+    const number = ticketNumber.trim().toUpperCase();
     const addr = email.trim();
     if (!slug) return setError("Enter the organization.");
     if (!number) return setError("Enter your ticket number.");
@@ -153,89 +187,68 @@ function TrackTicket() {
       if (!found) {
         throw new Error("We could not find that organization. Check the name in the link you were given.");
       }
-      try {
-        await getPublicTicket(found.slug, number);
-      } catch (err) {
-        if (err instanceof PublicSupportError && err.status === 404) {
-          throw new Error(`We could not find ticket ${number}. Check the number in your confirmation.`);
-        }
-        throw err;
-      }
       await sendSupportCode(found.slug, addr);
       setTenant(found);
       setTicketNumber(number);
       setEmail(addr);
       setCode("");
+      setNotice(null);
       setCooldown(RESEND_SECONDS);
       setStep("code");
     });
   }
 
-  function resend(onError: (msg: string) => void = setError) {
+  function resend() {
     if (!tenant) return;
     void run(async () => {
       await sendSupportCode(tenant.slug, email);
       setCooldown(RESEND_SECONDS);
-    }, onError);
+    });
   }
 
   function onCode(e: React.FormEvent) {
     e.preventDefault();
+    if (!tenant) return;
     if (!/^\d{6}$/.test(code)) return setError("Enter the 6-digit code from the email.");
     void run(async () => {
-      setToken(await verifySupportCode(email, code));
+      const otpToken = await verifySupportCode(email, code);
+      try {
+        const granted = await requestTicketAccess(tenant.slug, ticketNumber, otpToken);
+        setInitial(granted.ticket);
+        setAccess(granted.access_token);
+      } catch (err) {
+        if (err instanceof PublicSupportError && err.status === 404) {
+          setStep("find");
+          throw new Error(
+            `We could not find ticket ${ticketNumber} for ${email}. Check the number and use the email that opened the ticket.`,
+          );
+        }
+        throw err;
+      }
+      setNotice(null);
       setStep("ticket");
     });
-  }
-
-  async function postReply(otpToken: string) {
-    // The token is spent as soon as ticketing-api checks it, even when the reply is refused.
-    setToken(null);
-    try {
-      await addPublicReply(tenant!.slug, ticketNumber, otpToken, reply.trim());
-    } catch (err) {
-      if (err instanceof PublicSupportError && err.status === 403) {
-        throw new Error(`Only the email that opened ticket ${ticketNumber} can reply to it.`);
-      }
-      if (err instanceof PublicSupportError && err.status === 401) {
-        throw new Error("The code has expired. Send a new code and try again.");
-      }
-      throw err;
-    }
-    setReply("");
-    setReplyCode("");
-    setReplyStage("write");
-    setReplySent(true);
-    void ticket.refetch();
   }
 
   function onReply(e: React.FormEvent) {
     e.preventDefault();
     setReplySent(false);
+    if (!tenant || !access) return;
     if (!reply.trim()) return setReplyError("Write your reply first.");
-    if (token) {
-      void run(() => postReply(token), (m) => setReplyError(m || null));
-      return;
-    }
-    // A later reply needs a fresh code.
     void run(
       async () => {
-        await sendSupportCode(tenant!.slug, email);
-        setCooldown(RESEND_SECONDS);
-        setReplyCode("");
-        setReplyStage("code");
-      },
-      (m) => setReplyError(m || null),
-    );
-  }
-
-  function onReplyCode(e: React.FormEvent) {
-    e.preventDefault();
-    if (!/^\d{6}$/.test(replyCode)) return setReplyError("Enter the 6-digit code from the email.");
-    void run(
-      async () => {
-        const fresh = await verifySupportCode(email, replyCode);
-        await postReply(fresh);
+        try {
+          await addPublicReply(tenant.slug, ticketNumber, access, reply.trim());
+        } catch (err) {
+          if (isExpired(err)) {
+            await reverify("Your access to this ticket has ended. Confirm your email again and your reply will still be here.");
+            return;
+          }
+          throw err;
+        }
+        setReply("");
+        setReplySent(true);
+        void ticket.refetch();
       },
       (m) => setReplyError(m || null),
     );
@@ -260,7 +273,7 @@ function TrackTicket() {
               <Loader2 className="h-4 w-4 animate-spin" /> Loading ticket...
             </p>
           )}
-          {ticket.isError && (
+          {ticket.isError && !isExpired(ticket.error) && (
             <p role="alert" className="text-sm text-destructive">
               {message(ticket.error, "We could not load this ticket. Please try again.")}
             </p>
@@ -284,92 +297,39 @@ function TrackTicket() {
 
           <Separator />
 
-          {replyStage === "write" ? (
-            <form onSubmit={onReply} className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="reply">Add a reply</Label>
-                <Textarea
-                  id="reply"
-                  rows={4}
-                  maxLength={5000}
-                  value={reply}
-                  onChange={(e) => {
-                    setReply(e.target.value);
-                    setReplySent(false);
-                  }}
-                  placeholder="Anything the team should know..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Replies are answered by email at <span className="font-medium text-foreground">{email}</span>.
-                  {!token && " We send a new code to confirm each reply."}
-                </p>
-              </div>
-              {replyError && (
-                <p role="alert" className="text-sm text-destructive">
-                  {replyError}
-                </p>
-              )}
-              {replySent && (
-                <p role="status" className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle2 className="h-4 w-4" /> Your reply was added to the ticket.
-                </p>
-              )}
-              <Button type="submit" disabled={busy || !reply.trim()}>
-                {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {token ? "Send reply" : "Send code and reply"}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={onReplyCode} className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span> to confirm
-                this reply.
+          <form onSubmit={onReply} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="reply">Add a reply</Label>
+              <Textarea
+                id="reply"
+                rows={4}
+                maxLength={5000}
+                value={reply}
+                onChange={(e) => {
+                  setReply(e.target.value);
+                  setReplySent(false);
+                }}
+                placeholder="Anything the team should know..."
+              />
+              <p className="text-xs text-muted-foreground">
+                The team answers by email at <span className="font-medium text-foreground">{email}</span>.
               </p>
-              <div className="max-w-xs space-y-1">
-                <Label htmlFor="reply-otp">Verification code</Label>
-                <Input
-                  id="reply-otp"
-                  autoFocus
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={replyCode}
-                  onChange={(e) => setReplyCode(e.target.value.replace(/\D/g, ""))}
-                  className="text-center font-mono text-lg tracking-[0.4em]"
-                />
-              </div>
-              {replyError && (
-                <p role="alert" className="text-sm text-destructive">
-                  {replyError}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" disabled={busy || replyCode.length !== 6}>
-                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Verify and send reply
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={busy || cooldown > 0}
-                  onClick={() => resend((m) => setReplyError(m || null))}
-                >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    setReplyError(null);
-                    setReplyStage("write");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          )}
+            </div>
+            {replyError && (
+              <p role="alert" className="text-sm text-destructive">
+                {replyError}
+              </p>
+            )}
+            {replySent && (
+              <p role="status" className="flex items-center gap-2 text-sm text-green-600">
+                <CheckCircle2 className="h-4 w-4" /> Your reply was added to the ticket.
+              </p>
+            )}
+            <Button type="submit" disabled={busy || !reply.trim()}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send reply
+            </Button>
+          </form>
         </CardContent>
       </Card>
     );
@@ -381,6 +341,7 @@ function TrackTicket() {
         <CardHeader>
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
+            {notice ? `${notice} ` : ""}
             We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. It expires in 10
             minutes.
           </CardDescription>
@@ -410,7 +371,7 @@ function TrackTicket() {
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify and view ticket
               </Button>
-              <Button type="button" variant="ghost" disabled={busy || cooldown > 0} onClick={() => resend()}>
+              <Button type="button" variant="ghost" disabled={busy || cooldown > 0} onClick={resend}>
                 {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
               </Button>
               <Button
@@ -419,6 +380,7 @@ function TrackTicket() {
                 disabled={busy}
                 onClick={() => {
                   setError(null);
+                  setNotice(null);
                   setStep("find");
                 }}
               >
