@@ -26,21 +26,61 @@ export interface PublicTicketInput {
 
 const AUTH_BASE = AUTH_API_URL.replace(/\/+$/, "");
 
-async function post<T>(url: string, payload: unknown, headers: Record<string, string> = {}): Promise<T> {
+/** The slim public view of a ticket that ticketing-api's read-by-number route returns. */
+export interface PublicTicketView {
+  ticket_number: string;
+  status: string;
+  subject: string;
+  channel?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function ticketURL(tenantSlug: string, ticketNumber?: string): string {
+  const base = `${NORMALISED_BASE_URL}api/v1/${encodeURIComponent(tenantSlug)}/public/tickets`;
+  return ticketNumber ? `${base}/${encodeURIComponent(ticketNumber)}` : base;
+}
+
+function post<T>(url: string, payload: unknown, headers: Record<string, string> = {}): Promise<T> {
+  return send<T>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** A failed public call, carrying the HTTP status so a page can word its own message. */
+export class PublicSupportError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "PublicSupportError";
+    this.status = status;
+  }
+}
+
+async function send<T>(
+  url: string,
+  init: Omit<RequestInit, "headers"> & { headers?: Record<string, string> },
+): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
-      body: JSON.stringify(payload),
-    });
+    res = await fetch(url, { ...init, headers: { Accept: "application/json", ...init.headers } });
   } catch {
-    throw new Error("We could not reach the support desk. Check your connection and try again.");
+    throw new PublicSupportError("We could not reach the support desk. Check your connection and try again.", 0);
   }
   if (!res.ok) {
-    if (res.status === 429) throw new Error("Too many requests just now. Please wait a few minutes and try again.");
-    if (res.status >= 500) throw new Error("That did not go through on our side. Please try again.");
-    throw new Error(await extractErrorMessage(res, "That did not go through. Please try again."));
+    if (res.status === 429) {
+      throw new PublicSupportError("Too many requests just now. Please wait a few minutes and try again.", 429);
+    }
+    if (res.status >= 500) {
+      throw new PublicSupportError("That did not go through on our side. Please try again.", res.status);
+    }
+    throw new PublicSupportError(
+      await extractErrorMessage(res, "That did not go through. Please try again."),
+      res.status,
+    );
   }
   return ((await res.json().catch(() => null)) ?? {}) as T;
 }
@@ -63,9 +103,23 @@ export function createPublicTicket(
   otpToken: string,
   input: PublicTicketInput,
 ): Promise<PublicTicketResult> {
-  return post<PublicTicketResult>(
-    `${NORMALISED_BASE_URL}api/v1/${encodeURIComponent(tenantSlug)}/public/tickets`,
-    { ...input, channel: "web" },
-    { "X-OTP-Token": otpToken },
-  );
+  return post<PublicTicketResult>(ticketURL(tenantSlug), { ...input, channel: "web" }, { "X-OTP-Token": otpToken });
+}
+
+/** Reads a ticket's public view by its number. */
+export function getPublicTicket(tenantSlug: string, ticketNumber: string): Promise<PublicTicketView> {
+  return send<PublicTicketView>(ticketURL(tenantSlug, ticketNumber), { method: "GET" });
+}
+
+/**
+ * Adds the requester's reply. ticketing-api accepts it only when the token's verified email is
+ * the ticket's requester email, and the token works once, so each reply needs a fresh code.
+ */
+export function addPublicReply(
+  tenantSlug: string,
+  ticketNumber: string,
+  otpToken: string,
+  content: string,
+): Promise<{ comment_id?: string; created_at?: string }> {
+  return post(`${ticketURL(tenantSlug, ticketNumber)}/comments`, { content }, { "X-OTP-Token": otpToken });
 }

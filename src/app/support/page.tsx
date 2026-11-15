@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -172,9 +173,20 @@ function SupportForm() {
               <span className="font-medium text-foreground">{details?.email}</span>.
             </p>
           </div>
-          <Button variant="outline" onClick={startOver}>
-            Submit another request
-          </Button>
+          <div className="flex flex-wrap justify-center gap-3">
+            {ticketNumber && tenant && (
+              <Button asChild>
+                <Link
+                  href={`/support/track?org=${encodeURIComponent(tenant.slug)}&ticket=${encodeURIComponent(ticketNumber)}`}
+                >
+                  Track this ticket
+                </Link>
+              </Button>
+            )}
+            <Button variant="outline" onClick={startOver}>
+              Submit another request
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -317,6 +329,15 @@ function SupportForm() {
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {busy ? "Sending code..." : "Continue"}
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have a ticket?{" "}
+            <Link
+              href={linkedSlug ? `/support/track?org=${encodeURIComponent(linkedSlug)}` : "/support/track"}
+              className="font-medium text-primary hover:underline"
+            >
+              Track it here
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>
