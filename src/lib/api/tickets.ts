@@ -94,25 +94,11 @@ export async function getCategories(tenantSlug: string): Promise<Category[]> {
 }
 
 // ── Public customer portal (no auth required) ───────────────────────────────
-
-export interface PublicCreateTicketData {
-  subject: string;
-  description: string;
-  priority?: string;
-  customer_name: string;
-  customer_email: string;
-  tenant_slug: string;
-  attachments?: File[];
-}
+// Opening a ticket from the public form lives in ./public-support.ts (email code first).
 
 export interface CustomerTicketsResponse {
   data: Ticket[];
   total: number;
-}
-
-export async function createPublicTicket(payload: PublicCreateTicketData): Promise<Ticket> {
-  const { data } = await api.post<Ticket>(`api/v1/public/tickets`, payload);
-  return data;
 }
 
 export async function getCustomerTickets(emailToken: string): Promise<CustomerTicketsResponse> {

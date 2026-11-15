@@ -2,7 +2,7 @@ import axios from "axios";
 
 const DEFAULT_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://ticketingapi.codevertexafrica.com";
-const NORMALISED_BASE_URL = DEFAULT_BASE_URL.endsWith("/")
+export const NORMALISED_BASE_URL = DEFAULT_BASE_URL.endsWith("/")
   ? DEFAULT_BASE_URL
   : `${DEFAULT_BASE_URL}/`;
 

@@ -1,6 +1,6 @@
 import { serviceBrandingMap, type ServiceBrandingEntry } from "@bengo-hub/shared-ui-lib/branding";
 
-const AUTH_API_URL =
+export const AUTH_API_URL =
   process.env.NEXT_PUBLIC_AUTH_API_URL ||
   process.env.NEXT_PUBLIC_SSO_URL ||
   "https://sso.codevertexafrica.com";
