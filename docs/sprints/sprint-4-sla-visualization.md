@@ -1,69 +1,18 @@
-# Sprint 4 — SLA Visualization
+# Sprint 4: SLA Visualization
 
-**Duration**: Week 5  
-**Status**: 🔲 Pending (depends on API Sprint 3)
+**Status: Partial.** Timers, badges, the SLA panel and the breach banner are built. The inbox is not sorted by SLA due time, and the SLA panel claims business hours apply when deadlines are wall-clock.
 
----
+## Tasks
 
-## Overview
+- [x] `SLATimer` countdown with breached state
+- [x] `SLAStatusBadge` on list rows
+- [x] `SLASidebar` with first response and resolution targets, or the time each was met
+- [x] Breach banner on ticket detail when a target is missed
+- [x] Past SLA count on the agent inbox
+- [ ] Inbox sorted by `sla_due_at` by default (sprint 9)
+- [ ] `SLASidebar` shows the business-hours note only when the policy uses business hours; today it always says "Business hours apply" (sprint 9, with API sprint 10)
+- [ ] Policy name on the panel (needs the API to return it)
 
-Visual SLA indicators on ticket cards and detail pages: countdown timers, breach badges, and escalation warnings. Depends on Sprint 3 of the API adding SLA due times to ticket responses.
+## Acceptance criteria
 
----
-
-## Deliverables
-
-### Components
-
-**`SLATimer`** — countdown display:
-- Green: > 50% time remaining
-- Amber: 10–50% time remaining
-- Red: < 10% remaining
-- Red pulsing: breached
-
-**`SLAStatusBadge`** — icon + text badge shown on ticket card and list row:
-- `on_track`, `at_risk`, `breached_first_response`, `breached_resolution`
-
-**`SLASidebar`** — ticket detail right panel section:
-- First response target + actual (or countdown)
-- Resolution target + actual (or countdown)
-- Policy name, business hours flag
-
-### Ticket List Changes
-- Add SLA column to agent inbox
-- Sort tickets by `sla_due_at` ascending (most urgent first) by default
-
-### Ticket Detail Changes
-- SLA sidebar section shows first response and resolution times
-- Breach warning banner at top of detail page when breached
-
-### API Changes Required
-Ticket detail response needs:
-```json
-{
-  "sla": {
-    "policy_name": "Standard",
-    "first_response_due_at": "2026-05-21T10:30:00Z",
-    "first_response_at": null,
-    "first_response_breached": false,
-    "resolution_due_at": "2026-05-22T10:30:00Z",
-    "resolution_breached": false
-  }
-}
-```
-
----
-
-## Definition of Done
-
-- [ ] SLATimer countdown component
-- [ ] SLAStatusBadge on ticket cards
-- [ ] SLA sidebar section on ticket detail
-- [ ] Amber/red breach indicators
-- [ ] pnpm build passes clean
-
----
-
-## Next Sprint
-
-**Sprint 5**: Knowledge Base UI — article browser and search for customers and agents.
+- A breached ticket shows the banner and a breached timer. Met.

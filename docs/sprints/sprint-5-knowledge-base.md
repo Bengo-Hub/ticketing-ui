@@ -1,53 +1,17 @@
-# Sprint 5 — Knowledge Base UI
+# Sprint 5: Knowledge Base UI
 
-**Duration**: Week 6  
-**Status**: 🔲 Pending (depends on API Sprint 5)
+**Status: Partial.** The knowledge base browser, the article reader by slug, votes and staff article management with the shared editor are built. A public knowledge base outside the signed-in layout and deflection on the ticket form are missing.
 
----
+## Tasks
 
-## Overview
+- [x] `/[orgSlug]/kb`: article list with debounced search
+- [x] `/[orgSlug]/kb/[slug]`: reader with rich text rendering and helpful or not helpful votes (by article id)
+- [x] `/admin/kb`, `/admin/kb/new`, `/admin/kb/[articleId]`: staff list on the shared `DataTable`, `ArticleForm` with the shared `RichTextEditor`
+- [ ] A public knowledge base outside the signed-in layout; `/[orgSlug]/kb` sits inside `AuthProvider` today (sprint 12)
+- [ ] Category list from the API; categories are free text today
+- [ ] Deflection: matching articles on the ticket form as the subject is typed (sprint 12)
 
-Customer-facing knowledge base browser and agent-side KB management. AI-powered article suggestions appear in the ticket creation flow to deflect tickets when self-service answers exist.
+## Acceptance criteria
 
----
-
-## Deliverables
-
-### Customer Routes (public, no auth)
-- `GET /[orgSlug]/kb` — KB home with categories and featured articles
-- `GET /[orgSlug]/kb/search?q=...` — search results
-- `GET /[orgSlug]/kb/articles/[slug]` — article reader
-
-### Agent Routes (auth required)
-- `GET /[orgSlug]/admin/kb` — article list with drafts
-- `GET /[orgSlug]/admin/kb/new` — create article (markdown editor)
-- `GET /[orgSlug]/admin/kb/[id]/edit` — edit article
-
-### Components
-- `ArticleCard` — title, summary, tag chips, view count
-- `ArticleReader` — markdown renderer, helpful/not helpful vote
-- `MarkdownEditor` — rich text editor with preview tab (use `@uiw/react-md-editor`)
-- `KBSearchBar` — debounced search input
-
-### AI Deflection on Ticket Create
-When customer types a subject in the new ticket form:
-1. Debounce 500ms → call `GET /{tenant}/kb/search?q={subject}`
-2. Show top 3 articles in a panel: "These articles may answer your question"
-3. Customer can dismiss and continue submitting ticket
-
----
-
-## Definition of Done
-
-- [ ] KB article browser (public)
-- [ ] Article search with results
-- [ ] Helpful/not-helpful vote
-- [ ] Agent KB management (draft, publish, archive)
-- [ ] AI deflection on ticket create form
-- [ ] pnpm build passes clean
-
----
-
-## Next Sprint
-
-**Sprint 6**: Analytics Dashboard — charts, KPIs, CSAT scores.
+- Staff publish an article and a signed-in customer reads it by slug. Met.
+- A visitor without an account reads a public article. Not met, sprint 12.

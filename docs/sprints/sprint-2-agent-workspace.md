@@ -1,48 +1,17 @@
-# Sprint 2 — Agent Workspace
+# Sprint 2: Agent Workspace
 
-**Duration**: Week 3  
-**Status**: ✅ Complete
+**Status: Done** for its scope: inbox, ticket detail, replies and status moves. Views, macros, bulk actions, merge and collision warnings are in [sprint 8](sprint-8-agent-productivity.md).
 
----
+## Tasks
 
-## Overview
+- [x] `/[orgSlug]/agent`: tickets assigned to the caller, filtered by the agent record (`agentId` from `auth/me`), on the shared `DataTable`
+- [x] KPI cards: Active, Pending, Past SLA and Assigned in total, counted from the loaded queue. Resolved today and Overdue need API fields that do not exist yet (API sprint 12).
+- [x] Ticket detail in three panes on wide screens (conversation, properties, SLA) and stacked on phones
+- [x] Replies and internal notes through the shared `RichTextEditor` (`ReplyComposer`)
+- [x] Properties: status, priority, category, team and agent through `SearchableCombobox`; only status moves the API accepts are offered
+- [x] Comment author shown by type; author names need an API field (API sprint 9)
 
-The agent-facing workspace: personal inbox showing assigned tickets, queue stats, and ability to update ticket status, add internal notes, and reassign tickets.
+## Acceptance criteria
 
----
-
-## Deliverables
-
-### Routes
-- `GET /[orgSlug]/agent` — agent inbox (assigned tickets, stats, queue)
-
-### Components
-- Ticket queue with columns: Ticket #, Subject, Customer, Priority, Status, SLA
-- Stat cards: Open, Pending, Resolved Today, Overdue
-- Status update control (dropdown on ticket row)
-- Quick assign modal
-
-### API Integration
-- `src/hooks/useAgents.ts` — TanStack Query hooks for agent endpoints
-- Ticket list filtered to `agentId=<current-user-id>`
-- Status update via `PUT /{tenant}/tickets/{ticketId}/status`
-
-### Agent Context
-- `useMe` hook reads current user profile from auth session
-- Maps auth `user_id` to agent record via `GET /{tenant}/agents/user/{userId}`
-- Stores agent context in Zustand `auth` store
-
----
-
-## Definition of Done
-
-- [x] Agent inbox page with assigned ticket queue
-- [x] Stat cards for open/pending/resolved
-- [x] Status update dropdown
-- [x] pnpm build passes clean
-
----
-
-## Next Sprint
-
-**Sprint 3**: Admin Console — team management, agent management, settings.
+- An agent replies, adds an internal note and moves the status without leaving the ticket. Met.
+- A status the API would refuse is never offered. Met.

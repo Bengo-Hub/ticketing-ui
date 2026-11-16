@@ -1,56 +1,18 @@
-# Sprint 3 — Admin Console
+# Sprint 3: Admin Console
 
-**Duration**: Week 4  
-**Status**: ✅ Complete
+**Status: Partial.** Teams, agents, categories, SLA policies, routing rules and the knowledge base are managed from the admin console, gated by ticketing permissions. The settings page is a placeholder and there is no role administration screen yet.
 
----
+## Tasks
 
-## Overview
+- [x] `/[orgSlug]/admin`: dashboard with status counts and the period's created and resolved tickets
+- [x] `/admin/teams` and `/admin/agents` on the shared `DataTable`, with edit sheets
+- [x] `/admin/categories`, `/admin/sla` and `/admin/routing` on the existing API routes, with a condition editor for routing rules
+- [x] Every admin route gated by permission through `RouteGuard` and the shared nav definition, not by a hard-coded role check
+- [x] Tenant branding from shared-ui-lib `/tenant`
+- [ ] `/admin/settings`: today it shows "Settings coming soon" (channels and forwarding address in sprint 10)
+- [ ] Role administration on `GET /ticketing/roles`, `GET /ticketing/users` and `PUT /ticketing/users/{userId}/roles`
+- [ ] Adding an agent from the tenant's user directory (needs an API endpoint, see the plan's known issues)
 
-Admin-only section for managing teams, agents, and global settings. Protected by role check — only `admin` role can access.
+## Acceptance criteria
 
----
-
-## Deliverables
-
-### Routes
-- `GET /[orgSlug]/admin` — admin dashboard overview
-- `GET /[orgSlug]/admin/teams` — team list + CRUD modals
-- `GET /[orgSlug]/admin/agents` — agent list + CRUD modals
-- `GET /[orgSlug]/admin/settings` — settings placeholder
-
-### Components
-- `Sidebar` — role-aware navigation (hides admin links for non-admin)
-- `Header` — tenant branding, user menu, logout
-- Team list with add/edit/delete modals
-- Agent list with invite/edit/deactivate modals
-
-### API Integration
-- `src/lib/api/agents.ts` — team and agent CRUD endpoints
-- `src/lib/api/tenant.ts` — branding endpoint
-- `src/providers/branding-provider.tsx` — fetches `GET /{tenant}/branding`, injects CSS variables for brand colours
-- `src/providers/theme-provider.tsx` — shadcn/ui theme wrapper
-
-### Role-Based Guard
-```tsx
-// Redirect non-admin users to /tickets
-if (session.role !== 'admin' && session.role !== 'supervisor') {
-    redirect(`/${orgSlug}/unauthorized`)
-}
-```
-
----
-
-## Definition of Done
-
-- [x] Team CRUD in admin console
-- [x] Agent CRUD in admin console
-- [x] Role-based access guard (admin/supervisor only)
-- [x] Branding provider loads tenant colours
-- [x] pnpm build passes clean
-
----
-
-## Next Sprint
-
-**Sprint 4**: SLA Visualization — SLA countdown timers, breach badges, escalation indicators on tickets.
+- A supervisor sees SLA policies and routing rules read-only and cannot create them. Met through the permission gates.
