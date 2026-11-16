@@ -5,43 +5,33 @@
 import { Pencil, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@bengo-hub/shared-ui-lib/data-table";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
+import type { Translate } from "@/lib/i18n";
+import { formatMinutes } from "@/lib/sla";
 import { currentTicketLabels } from "@/lib/ticket-options";
 import { cn } from "@/lib/utils";
 import type { SLAPolicy } from "@/types/sla";
 
-/** 90 shows as "1h 30m", 1500 as "1d 1h". */
-export function formatMinutes(total: number): string {
-  if (!total || total < 0) return "-";
-  const d = Math.floor(total / 1440);
-  const h = Math.floor((total % 1440) / 60);
-  const m = total % 60;
-  return [d && `${d}d`, h && `${h}h`, m && `${m}m`].filter(Boolean).join(" ");
-}
-
-function Target({ minutes, businessHours }: { minutes: number; businessHours: boolean }) {
-  return (
-    <span className="whitespace-nowrap">
-      <span className="font-medium tabular-nums">{formatMinutes(minutes)}</span>
-      <span className="ml-1 text-xs text-muted-foreground">{businessHours ? "business hours" : "calendar"}</span>
-    </span>
-  );
-}
-
 export function buildSLAColumns({
+  t,
   categoryName,
-  canManage,
+  calendarName,
+  canChange,
+  canDelete,
   onEdit,
   onDelete,
 }: {
+  t: Translate;
   categoryName: (id?: string) => string | undefined;
-  canManage: boolean;
+  calendarName: (id: string | null) => string;
+  canChange: boolean;
+  canDelete: boolean;
   onEdit: (p: SLAPolicy) => void;
   onDelete: (p: SLAPolicy) => void;
 }): DataTableColumn<SLAPolicy>[] {
   const cols: DataTableColumn<SLAPolicy>[] = [
     {
       key: "name",
-      header: "Policy",
+      header: t("slaPolicies.colPolicy"),
       primary: true,
       sortable: true,
       accessor: (p) => p.name,
@@ -54,39 +44,45 @@ export function buildSLAColumns({
     },
     {
       key: "priority",
-      header: "Priority",
+      header: t("slaPolicies.colPriority"),
       accessor: (p) => currentTicketLabels().priority(p.priority),
       render: (p) => <PriorityBadge priority={p.priority} />,
     },
     {
       key: "category",
-      header: "Category",
+      header: t("slaPolicies.colCategory"),
       hideBelow: "lg",
       accessor: (p) => categoryName(p.category_id) ?? "",
-      render: (p) => categoryName(p.category_id) ?? <span className="text-muted-foreground">Any</span>,
+      render: (p) => categoryName(p.category_id) ?? <span className="text-muted-foreground">{t("slaPolicies.anyCategory")}</span>,
+    },
+    {
+      key: "calendar",
+      header: t("slaPolicies.colClock"),
+      hideBelow: "md",
+      accessor: (p) => calendarName(p.calendar_id),
     },
     {
       key: "first_response_minutes",
-      header: "First response",
+      header: t("slaPolicies.colFirstResponse"),
       sortable: true,
       accessor: (p) => p.first_response_minutes,
-      render: (p) => <Target minutes={p.first_response_minutes} businessHours={p.first_response_business_hours} />,
+      render: (p) => <span className="whitespace-nowrap font-medium tabular-nums">{formatMinutes(p.first_response_minutes, t)}</span>,
     },
     {
       key: "resolution_minutes",
-      header: "Resolution",
+      header: t("slaPolicies.colResolution"),
       sortable: true,
       accessor: (p) => p.resolution_minutes,
-      render: (p) => <Target minutes={p.resolution_minutes} businessHours={p.resolution_business_hours} />,
+      render: (p) => <span className="whitespace-nowrap font-medium tabular-nums">{formatMinutes(p.resolution_minutes, t)}</span>,
     },
     {
       key: "is_active",
-      header: "State",
+      header: t("slaPolicies.colState"),
       hideBelow: "md",
-      accessor: (p) => (p.is_active ? "Active" : "Inactive"),
+      accessor: (p) => (p.is_active ? t("slaPolicies.active") : t("slaPolicies.inactive")),
     },
   ];
-  if (canManage) {
+  if (canChange || canDelete) {
     cols.push({
       key: "actions",
       header: "",
@@ -95,22 +91,26 @@ export function buildSLAColumns({
       mobileAction: true,
       render: (p) => (
         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => onEdit(p)}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label={`Edit ${p.name}`}
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(p)}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            aria-label={`Delete ${p.name}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {canChange && (
+            <button
+              type="button"
+              onClick={() => onEdit(p)}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label={t("slaPolicies.editNamed", { name: p.name })}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(p)}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              aria-label={t("slaPolicies.deleteNamed", { name: p.name })}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ),
     });

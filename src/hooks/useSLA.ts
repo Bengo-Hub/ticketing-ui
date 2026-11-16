@@ -1,8 +1,26 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createSLAPolicy, deleteSLAPolicy, getSLAPolicies, updateSLAPolicy } from "@/lib/api/sla";
-import type { CreateSLAPolicyData, SLAPolicyListParams, UpdateSLAPolicyData } from "@/types/sla";
+import {
+  createCalendar,
+  createSLAPolicy,
+  deleteCalendar,
+  deleteSLAPolicy,
+  getCalendar,
+  getCalendars,
+  getSLAPolicies,
+  getSLAPolicy,
+  getSLAReport,
+  updateCalendar,
+  updateSLAPolicy,
+} from "@/lib/api/sla";
+import type {
+  CalendarInput,
+  CreateSLAPolicyData,
+  SLAPolicyListParams,
+  SLAReportParams,
+  UpdateSLAPolicyData,
+} from "@/types/sla";
 
 export function useSLAPolicies(params: SLAPolicyListParams) {
   return useQuery({
@@ -11,6 +29,16 @@ export function useSLAPolicies(params: SLAPolicyListParams) {
     enabled: !!params.tenantSlug,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
+  });
+}
+
+/** One policy, for the ticket's SLA panel. Only people who may read SLA settings fetch it. */
+export function useSLAPolicy(tenantSlug: string, id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["sla-policy", tenantSlug, id],
+    queryFn: () => getSLAPolicy(tenantSlug, id as string),
+    enabled: enabled && !!tenantSlug && !!id,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -26,7 +54,10 @@ export function useUpdateSLAPolicy(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateSLAPolicyData }) => updateSLAPolicy(tenantSlug, id, data),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["sla-policies"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["sla-policies"] });
+      void qc.invalidateQueries({ queryKey: ["sla-policy"] });
+    },
   });
 }
 
@@ -35,5 +66,55 @@ export function useDeleteSLAPolicy(tenantSlug: string) {
   return useMutation({
     mutationFn: (id: string) => deleteSLAPolicy(tenantSlug, id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["sla-policies"] }),
+  });
+}
+
+/** A tenant's calendars; a handful at most, so pickers read one page of 100. */
+export function useCalendars(tenantSlug: string, page = 1, limit = 100, enabled = true) {
+  return useQuery({
+    queryKey: ["sla-calendars", tenantSlug, page, limit],
+    queryFn: () => getCalendars(tenantSlug, { page, limit }),
+    enabled: enabled && !!tenantSlug,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+}
+
+export function useCalendar(tenantSlug: string, id: string | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["sla-calendar", tenantSlug, id],
+    queryFn: () => getCalendar(tenantSlug, id as string),
+    enabled: enabled && !!tenantSlug && !!id,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSaveCalendar(tenantSlug: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: string; data: CalendarInput }) =>
+      id ? updateCalendar(tenantSlug, id, data) : createCalendar(tenantSlug, data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["sla-calendars"] });
+      void qc.invalidateQueries({ queryKey: ["sla-calendar"] });
+    },
+  });
+}
+
+export function useDeleteCalendar(tenantSlug: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCalendar(tenantSlug, id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["sla-calendars"] }),
+  });
+}
+
+export function useSLAReport(tenantSlug: string, params: SLAReportParams, enabled = true) {
+  return useQuery({
+    queryKey: ["sla-report", tenantSlug, params],
+    queryFn: () => getSLAReport(tenantSlug, params),
+    enabled: enabled && !!tenantSlug,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 }

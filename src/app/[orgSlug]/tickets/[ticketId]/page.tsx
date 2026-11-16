@@ -212,7 +212,7 @@ export default function TicketDetailPage() {
           {staffDesk && <TicketLinks orgSlug={orgSlug} ticketId={ticket.id} canChange={canChange} />}
           {(ticket.sla_response_due_at || ticket.sla_resolution_due_at) && (
             <div className="rounded-xl border border-border bg-card p-4">
-              <SLASidebar ticket={ticket} />
+              <SLASidebar ticket={ticket} orgSlug={orgSlug} />
             </div>
           )}
           <div className="xl:hidden">

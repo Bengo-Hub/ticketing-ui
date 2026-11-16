@@ -38,6 +38,14 @@ export interface Ticket {
   sla_resolution_due_at?: string;
   sla_response_breached: boolean;
   sla_resolution_breached: boolean;
+  sla_policy_id?: string;
+  /** Set while a pending status stops the SLA clock; the open deadlines move when it restarts. */
+  sla_paused_at?: string;
+  /** Paused minutes so far, in the policy's clock. */
+  sla_paused_minutes?: number;
+  /** Minutes to first response and to resolution in the policy's clock, net of pauses. */
+  sla_first_response_minutes?: number;
+  sla_resolution_minutes?: number;
   first_response_at?: string;
   resolved_at?: string;
   closed_at?: string;

@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { PlusCircle, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
 import { SearchableCombobox } from "@bengo-hub/shared-ui-lib/combobox";
-import { useDeleteSLAPolicy, useSLAPolicies } from "@/hooks/useSLA";
+import { useCalendars, useDeleteSLAPolicy, useSLAPolicies } from "@/hooks/useSLA";
 import { useLookups } from "@/hooks/useLookups";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { useT } from "@/hooks/useT";
 import { PERM } from "@/lib/rbac/permissions";
 import { useTicketLabels } from "@/lib/ticket-options";
 import { PageHeader } from "@/components/common/page-header";
@@ -19,19 +20,20 @@ import type { TicketPriority } from "@/types/tickets";
 import type { SLAPolicy } from "@/types/sla";
 import { buildSLAColumns } from "./sla-columns";
 import { SLASheet } from "./sla-sheet";
-
-const ACTIVE_OPTIONS = [
-  { value: "true", label: "Active" },
-  { value: "false", label: "Inactive" },
-];
+import { SLATabs } from "./sla-tabs";
 
 export default function SLAPoliciesPage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
+  const { t } = useT();
   const { can } = useServicePermissions(orgSlug);
-  const canManage = can(PERM.slaManage);
-  const { categoryName, categoryOptions } = useLookups(orgSlug);
+  const canAdd = can(PERM.slaAdd);
+  const canChange = can(PERM.slaChange);
+  const canDelete = can(PERM.slaDelete);
+  const { categoryName, categoryOptions, teamOptions } = useLookups(orgSlug);
   const labels = useTicketLabels();
+  const calendars = useCalendars(orgSlug);
+  const calendarRows = calendars.data?.data;
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -54,18 +56,34 @@ export default function SLAPoliciesPage() {
     setSheetOpen(true);
   };
 
+  const calendarName = useCallback(
+    (id: string | null) =>
+      id ? (calendarRows?.find((c) => c.id === id)?.name ?? t("slaPolicies.calendarMissing")) : t("slaPolicies.clock24x7"),
+    [calendarRows, t],
+  );
+  const activeOptions = useMemo(
+    () => [
+      { value: "true", label: t("slaPolicies.active") },
+      { value: "false", label: t("slaPolicies.inactive") },
+    ],
+    [t],
+  );
+
   const columns = useMemo(
     () =>
       buildSLAColumns({
+        t,
         categoryName,
-        canManage,
+        calendarName,
+        canChange,
+        canDelete,
         onEdit: (p) => {
           setEditing(p);
           setSheetOpen(true);
         },
         onDelete: setRemoving,
       }),
-    [categoryName, canManage],
+    [t, categoryName, calendarName, canChange, canDelete],
   );
   const total = data?.total ?? 0;
 
@@ -73,28 +91,29 @@ export default function SLAPoliciesPage() {
     if (!removing) return;
     try {
       await deletePolicy.mutateAsync(removing.id);
-      toast.success("Policy deleted");
+      toast.success(t("slaPolicies.deleted"));
       setRemoving(null);
     } catch {
-      toast.error("The policy could not be deleted.");
+      toast.error(t("slaPolicies.deleteFailed"));
     }
   };
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader
-        back={{ href: orgRoute(orgSlug, "/admin"), label: "Admin" }}
+        back={{ href: orgRoute(orgSlug, "/admin"), label: t("nav.admin") }}
         icon={Timer}
-        title="SLA policies"
-        subtitle="First response and resolution targets by priority and category."
+        title={t("slaPolicies.title")}
+        subtitle={t("slaPolicies.subtitle")}
         actions={
-          canManage ? (
+          canAdd ? (
             <Button onClick={() => openSheet(null)}>
-              <PlusCircle className="h-4 w-4" /> New policy
+              <PlusCircle className="h-4 w-4" /> {t("slaPolicies.new")}
             </Button>
           ) : undefined
         }
       />
+      <SLATabs orgSlug={orgSlug} />
 
       <DataTable
         columns={columns}
@@ -104,8 +123,8 @@ export default function SLAPoliciesPage() {
         loadingRows={4}
         error={isError}
         onRetry={() => void refetch()}
-        emptyText={priority || active ? "No policies match these filters." : "No SLA policies yet."}
-        onRowClick={canManage ? openSheet : undefined}
+        emptyText={priority || active ? t("slaPolicies.emptyFiltered") : t("slaPolicies.empty")}
+        onRowClick={canChange ? openSheet : undefined}
         maxBodyHeight={false}
         page={page}
         totalPages={Math.max(1, Math.ceil(total / limit))}
@@ -118,7 +137,7 @@ export default function SLAPoliciesPage() {
           setPage(1);
         }}
         toolbar={
-          <div className="grid w-full grid-cols-2 gap-2 sm:max-w-md">
+          <div className="grid w-full grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:max-w-md">
             <SearchableCombobox
               options={labels.priorityOptions}
               value={priority}
@@ -126,16 +145,16 @@ export default function SLAPoliciesPage() {
                 setPriority(v as TicketPriority | "");
                 setPage(1);
               }}
-              placeholder="All priorities"
+              placeholder={t("slaPolicies.allPriorities")}
             />
             <SearchableCombobox
-              options={ACTIVE_OPTIONS}
+              options={activeOptions}
               value={active}
               onChange={(v) => {
                 setActive(v);
                 setPage(1);
               }}
-              placeholder="Any state"
+              placeholder={t("slaPolicies.anyState")}
             />
           </div>
         }
@@ -149,15 +168,17 @@ export default function SLAPoliciesPage() {
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           categoryOptions={categoryOptions}
+          teamOptions={teamOptions}
+          calendars={calendarRows ?? []}
         />
       )}
 
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}
-        title={`Delete ${removing?.name ?? "policy"}?`}
-        description="Tickets that already have targets keep them. New tickets fall back to the next matching policy."
-        confirmLabel="Delete policy"
+        title={t("slaPolicies.deleteTitle", { name: removing?.name ?? "" })}
+        description={t("slaPolicies.deleteBody")}
+        confirmLabel={t("slaPolicies.deleteConfirm")}
         loading={deletePolicy.isPending}
         onConfirm={() => void onRemove()}
       />

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/base";
 import { toPlainText } from "@/components/common/rich-text";
 import { AttachmentDropzone } from "@/components/tickets/attachments/AttachmentDropzone";
 import { MacroPicker } from "@/components/tickets/MacroPicker";
-import { mentionEditorProps } from "@/components/tickets/mentions";
+import { mentionItems } from "@/components/tickets/mentions";
 import { useAddComment } from "@/hooks/useTickets";
 import { useUploadAttachment } from "@/hooks/useAttachments";
 import { useLookups } from "@/hooks/useLookups";
@@ -123,7 +123,7 @@ export function ReplyComposer({
 
       <div onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
         <RichTextEditor
-          {...(allowInternal ? mentionEditorProps(agents) : {})}
+          {...(allowInternal ? { mentions: mentionItems(agents) } : {})}
           value={content}
           onChange={setContent}
           placeholder={internal ? t("ticket.notePlaceholder") : t("ticket.replyPlaceholder")}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { CirclePause, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/hooks/useT";
 import type { Translate } from "@/lib/i18n";
@@ -10,6 +10,10 @@ interface SLATimerProps {
   dueAt: string;
   breached: boolean;
   label?: string;
+  /** The clock is stopped; the deadline moves by the paused time once it restarts. */
+  paused?: boolean;
+  /** The policy's pre-breach warning lead. Without it the timer shows no warning colour. */
+  warnMinutes?: number;
   className?: string;
 }
 
@@ -25,45 +29,48 @@ function formatDuration(ms: number, t: Translate): string {
   return t("time.minutes", { m: minutes });
 }
 
-// The prop carries only the deadline, not when the clock started, so colour bands measure the time
-// left against a fixed 4-hour window. It is visual only.
-const COLOUR_WINDOW_MS = 4 * 60 * 60 * 1000;
-
-export function SLATimer({ dueAt, breached, label, className }: SLATimerProps) {
+/**
+ * Wall-clock time left to a deadline. The deadline already accounts for the policy's business
+ * hours, so the countdown is exact while the clock runs. While it is paused the deadline is not
+ * final, so the timer says so instead of counting.
+ */
+export function SLATimer({ dueAt, breached, label, paused, warnMinutes, className }: SLATimerProps) {
   const { t } = useT();
   const [remaining, setRemaining] = useState<number>(0);
 
   useEffect(() => {
     const due = new Date(dueAt).getTime();
-
-    const update = () => {
-      const now = Date.now();
-      setRemaining(due - now);
-    };
-
+    const update = () => setRemaining(due - Date.now());
     update();
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);
   }, [dueAt]);
 
-  const pct = Math.max(0, remaining / COLOUR_WINDOW_MS);
+  if (paused && !breached) {
+    return (
+      <div className={cn("flex items-center gap-1.5", className)}>
+        <CirclePause className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="leading-tight">
+          {label && <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>}
+          <span className="text-xs font-semibold text-muted-foreground">{t("sla.paused")}</span>
+        </div>
+      </div>
+    );
+  }
 
-  const colour =
-    breached || remaining <= 0
-      ? "text-destructive"
-      : pct < 0.1
-        ? "text-destructive"
-        : pct < 0.5
-          ? "text-yellow-600 dark:text-yellow-400"
-          : "text-green-600 dark:text-green-400";
-
-  const pulse = breached || remaining <= 0;
+  const late = breached || remaining <= 0;
+  const warned = !late && !!warnMinutes && remaining <= warnMinutes * 60_000;
+  const colour = late
+    ? "text-destructive"
+    : warned
+      ? "text-yellow-600 dark:text-yellow-400"
+      : "text-green-600 dark:text-green-400";
 
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
-      <Clock className={cn("h-3.5 w-3.5 shrink-0", colour, pulse && "animate-pulse")} />
+      <Clock className={cn("h-3.5 w-3.5 shrink-0", colour, late && "animate-pulse")} />
       <div className="leading-tight">
-        {label && <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>}
+        {label && <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>}
         <span className={cn("text-xs font-semibold tabular-nums", colour)}>
           {breached ? t("sla.breached") : formatDuration(remaining, t)}
         </span>
