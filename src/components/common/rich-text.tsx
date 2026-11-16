@@ -14,12 +14,41 @@ const noopSubscribe = () => () => {};
 
 const ALLOWED = new Set(["P", "BR", "H2", "H3", "STRONG", "B", "EM", "I", "S", "UL", "OL", "LI", "BLOCKQUOTE", "CODE", "PRE", "A"]);
 
-/** Keeps only the editor's own tags and safe links. */
+/**
+ * The fleet mention format (Tiptap's mention node):
+ * <span data-type="mention" data-id="<agent uuid>" data-label="Name">@Name</span>.
+ * Only a span of exactly that type is kept, with only those three attributes, the id checked as a
+ * UUID and the label as plain text. Any other span is unwrapped like an unknown tag.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MENTION_ATTRS = new Set(["data-type", "data-id", "data-label"]);
+const MENTION_CLASS = "mention";
+
+function isMention(el: Element): boolean {
+  return el.tagName === "SPAN" && el.getAttribute("data-type") === "mention" && UUID.test(el.getAttribute("data-id") ?? "");
+}
+
+/** Strips a mention span to its three attributes and its text, and marks it for the pill style. */
+function keepMention(el: Element) {
+  for (const attr of Array.from(el.attributes)) {
+    if (!MENTION_ATTRS.has(attr.name)) el.removeAttribute(attr.name);
+  }
+  const label = el.getAttribute("data-label");
+  if (label !== null) el.setAttribute("data-label", label.replace(/[<>"]/g, "").slice(0, 100));
+  el.textContent = el.textContent ?? "";
+  el.setAttribute("class", MENTION_CLASS);
+}
+
+/** Keeps only the editor's own tags, mention spans and safe links. */
 function clean(html: string): string {
   if (typeof window === "undefined" || !/<[a-z/][^>]*>/i.test(html)) return "";
   const doc = new DOMParser().parseFromString(html, "text/html");
   const walk = (el: Element) => {
     for (const child of Array.from(el.children)) {
+      if (isMention(child)) {
+        keepMention(child);
+        continue;
+      }
       if (!ALLOWED.has(child.tagName)) {
         // Script, style and frame bodies are dropped whole; any other unknown tag keeps its text.
         if (child.tagName === "SCRIPT" || child.tagName === "STYLE" || child.tagName === "IFRAME") child.remove();
@@ -81,6 +110,7 @@ export function RichTextView({ value, className }: { value?: string | null; clas
         "break-words text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
         "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3",
         "[&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_p]:my-1.5 [&_ul]:list-disc",
+        "[&_.mention]:rounded-full [&_.mention]:bg-primary/10 [&_.mention]:px-1.5 [&_.mention]:py-0.5 [&_.mention]:font-medium [&_.mention]:text-primary [&_.mention]:whitespace-nowrap",
         className,
       )}
       dangerouslySetInnerHTML={{ __html: html }}

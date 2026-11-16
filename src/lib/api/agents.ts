@@ -25,6 +25,14 @@ export async function getAgents(tenantSlug: string, params: DirectoryListParams 
   return data;
 }
 
+/** Agents available for assignment, least loaded first (at most 200). */
+export async function getAvailableAgents(tenantSlug: string, teamId?: string): Promise<Agent[]> {
+  const { data } = await api.get<{ data?: Agent[] }>(`api/v1/${tenantSlug}/agents/available`, {
+    params: { teamId: teamId || undefined, limit: 100 },
+  });
+  return data.data ?? [];
+}
+
 export async function getAgent(tenantSlug: string, id: string): Promise<Agent> {
   const { data } = await api.get<Agent>(`api/v1/${tenantSlug}/agents/${id}`);
   return data;

@@ -4,6 +4,7 @@ import type {
   Category,
   CreateCategoryData,
   CreateTicketData,
+  CursorPage,
   PageResponse,
   Ticket,
   TicketAnalytics,
@@ -15,15 +16,20 @@ import type {
   UpdateCategoryData,
   UpdateTicketData,
 } from "@/types/tickets";
+import type { BulkUpdateData, BulkUpdateResponse, TagCount } from "@/types/workspace";
 
-/** `signal` lets a newer search abort the older request (the fleet debounced search standard). */
+/**
+ * One keyset page of tickets. `signal` lets a newer search abort the older request (the fleet
+ * debounced search standard). Empty filters are left out of the query string.
+ */
 export async function getTickets(params: TicketListParams, signal?: AbortSignal): Promise<TicketListResponse> {
   const { tenantSlug, ...rest } = params;
+  const query = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined && v !== ""));
   const { data } = await api.get<TicketListResponse>(`api/v1/${tenantSlug}/tickets`, {
-    params: rest,
+    params: query,
     signal,
   });
-  return data;
+  return { ...data, data: data.data ?? [] };
 }
 
 export async function getTicket(tenantSlug: string, id: string): Promise<Ticket> {
@@ -80,15 +86,40 @@ export async function addComment(
   return data;
 }
 
-/** The API answers `{ comments, total }`; customers never receive internal notes. */
+/** One page of comments, oldest first. Customers never receive internal notes. */
 export async function getTicketComments(
   tenantSlug: string,
   ticketId: string,
-): Promise<TicketComment[]> {
-  const { data } = await api.get<{ comments?: TicketComment[]; total?: number }>(
+  cursor?: string,
+  limit = 50,
+): Promise<CursorPage<TicketComment>> {
+  const { data } = await api.get<CursorPage<TicketComment>>(
     `api/v1/${tenantSlug}/tickets/${ticketId}/comments`,
+    { params: { cursor: cursor || undefined, limit } },
   );
-  return data.comments ?? [];
+  return { ...data, data: data.data ?? [] };
+}
+
+/** The tenant's tags in use, most used first (staff only). */
+export async function getTicketTags(tenantSlug: string, search?: string): Promise<TagCount[]> {
+  const { data } = await api.get<{ data?: TagCount[] }>(`api/v1/${tenantSlug}/tickets/tags`, {
+    params: { search: search || undefined, limit: 100 },
+  });
+  return data.data ?? [];
+}
+
+/** Changes up to 100 tickets at once. Each ticket's outcome comes back on its own. */
+export async function bulkUpdateTickets(tenantSlug: string, payload: BulkUpdateData): Promise<BulkUpdateResponse> {
+  const { data } = await api.put<BulkUpdateResponse>(`api/v1/${tenantSlug}/tickets/bulk`, payload);
+  return data;
+}
+
+/** Merges the ticket into another one and answers the target. The merged ticket closes. */
+export async function mergeTicket(tenantSlug: string, id: string, intoTicketId: string): Promise<Ticket> {
+  const { data } = await api.post<Ticket>(`api/v1/${tenantSlug}/tickets/${id}/merge`, {
+    into_ticket_id: intoTicketId,
+  });
+  return data;
 }
 
 /** The API answers `{ stats: { <status>: count } }`. */

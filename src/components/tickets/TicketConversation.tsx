@@ -2,6 +2,7 @@
 
 import { Bot, Lock, MessageSquare, User, UserCog } from "lucide-react";
 import { RichTextView } from "@/components/common/rich-text";
+import { LoadMore } from "@/components/common/load-more";
 import { useT } from "@/hooks/useT";
 import type { MessageKey } from "@/lib/i18n";
 import { cn, formatDateTime, formatRelativeTime } from "@/lib/utils";
@@ -62,15 +63,24 @@ function CommentCard({ comment }: { comment: TicketComment }) {
   );
 }
 
-/** The ticket's description followed by its replies, notes and system events, oldest first. */
+/**
+ * The ticket's description followed by its replies, notes and system events, oldest first. The
+ * API pages the thread from the start, so later replies load on request under the last one shown.
+ */
 export function TicketConversation({
   ticket,
   comments,
   loading,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: {
   ticket: Ticket;
   comments: TicketComment[];
   loading?: boolean;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   const { t } = useT();
   const ordered = [...comments].sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -90,7 +100,7 @@ export function TicketConversation({
       </article>
 
       <h2 className="flex items-center gap-2 pt-1 text-sm font-semibold text-muted-foreground">
-        <MessageSquare className="h-4 w-4" /> {t("ticket.repliesAndNotes", { n: comments.length })}
+        <MessageSquare className="h-4 w-4" /> {t("ticket.repliesAndNotes", { n: hasMore ? `${comments.length}+` : comments.length })}
       </h2>
 
       {loading ? (
@@ -105,6 +115,16 @@ export function TicketConversation({
         </p>
       ) : (
         ordered.map((c) => <CommentCard key={c.id} comment={c} />)
+      )}
+
+      {onLoadMore && (
+        <LoadMore
+          shown={comments.length}
+          hasMore={hasMore}
+          loading={loadingMore}
+          onLoadMore={onLoadMore}
+          label={t("ticket.laterReplies")}
+        />
       )}
     </section>
   );

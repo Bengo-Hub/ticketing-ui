@@ -14,6 +14,11 @@ export const PERM = {
   ticketsDelete: "ticketing.tickets.delete",
   ticketsManage: "ticketing.tickets.manage",
   commentsAdd: "ticketing.comments.add",
+  attachmentsAdd: "ticketing.attachments.add",
+  attachmentsView: "ticketing.attachments.view",
+  attachmentsViewOwn: "ticketing.attachments.view_own",
+  attachmentsDelete: "ticketing.attachments.delete",
+  attachmentsDeleteOwn: "ticketing.attachments.delete_own",
   agentsView: "ticketing.agents.view",
   agentsManage: "ticketing.agents.manage",
   teamsView: "ticketing.teams.view",
@@ -40,11 +45,18 @@ const ROLE_PERMISSIONS: Record<ServiceRole, Permission[]> = {
   ticketing_admin: ALL,
   supervisor: [
     PERM.ticketsView, PERM.ticketsAdd, PERM.ticketsChange, PERM.ticketsManage, PERM.commentsAdd,
+    PERM.attachmentsAdd, PERM.attachmentsView, PERM.attachmentsDelete,
     PERM.agentsView, PERM.teamsView, PERM.slaView, PERM.routingView, PERM.kbView, PERM.kbManage,
     PERM.analyticsView,
   ],
-  agent: [PERM.ticketsView, PERM.ticketsAdd, PERM.ticketsChange, PERM.commentsAdd, PERM.kbView],
-  customer: [PERM.ticketsAdd, PERM.ticketsViewOwn, PERM.ticketsChangeOwn, PERM.commentsAdd, PERM.kbView],
+  agent: [
+    PERM.ticketsView, PERM.ticketsAdd, PERM.ticketsChange, PERM.commentsAdd, PERM.kbView,
+    PERM.attachmentsAdd, PERM.attachmentsView, PERM.attachmentsDeleteOwn, PERM.agentsView, PERM.teamsView,
+  ],
+  customer: [
+    PERM.ticketsAdd, PERM.ticketsViewOwn, PERM.ticketsChangeOwn, PERM.commentsAdd, PERM.kbView,
+    PERM.attachmentsAdd, PERM.attachmentsViewOwn, PERM.attachmentsDeleteOwn,
+  ],
 };
 
 /** Maps global SSO roles to the ticketing role, mirroring ticketing-api's JIT mapping. */

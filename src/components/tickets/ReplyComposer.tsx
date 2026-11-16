@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Lock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { RichTextEditor } from "@bengo-hub/shared-ui-lib/rich-text-editor";
 import { Button } from "@/components/ui/base";
 import { toPlainText } from "@/components/common/rich-text";
+import { AttachmentDropzone } from "@/components/tickets/attachments/AttachmentDropzone";
+import { MacroPicker } from "@/components/tickets/MacroPicker";
+import { mentionEditorProps } from "@/components/tickets/mentions";
 import { useAddComment } from "@/hooks/useTickets";
+import { useUploadAttachment } from "@/hooks/useAttachments";
+import { useLookups } from "@/hooks/useLookups";
 import { cn } from "@/lib/utils";
 import { useT } from "@/hooks/useT";
 
@@ -14,30 +19,71 @@ type Mode = "public" | "internal";
 
 /**
  * Reply box under the conversation. Staff choose between a public reply, which the customer sees,
- * and an internal note, which only staff see. Customers can only reply publicly.
+ * and an internal note, which only staff see, and can apply a macro or @mention a colleague.
+ * Customers can only reply publicly. Files dropped on the box go up after the reply, attached to
+ * it; files sent without text go up on their own. While the box has focus and text, the parent
+ * hears "typing" for the collision warning.
  */
 export function ReplyComposer({
   orgSlug,
   ticketId,
   allowInternal,
+  allowMacros,
+  allowAttachments,
+  onTypingChange,
 }: {
   orgSlug: string;
   ticketId: string;
   allowInternal: boolean;
+  allowMacros: boolean;
+  allowAttachments: boolean;
+  onTypingChange?: (typing: boolean) => void;
 }) {
   const { t } = useT();
+  const { agents } = useLookups(orgSlug);
   const [mode, setMode] = useState<Mode>("public");
   const [content, setContent] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [filesInternal, setFilesInternal] = useState(false);
+  const [focused, setFocused] = useState(false);
   const addComment = useAddComment(orgSlug, ticketId);
+  const upload = useUploadAttachment(orgSlug, ticketId);
   const internal = allowInternal && mode === "internal";
   const empty = toPlainText(content) === "";
+  const busy = addComment.isPending || upload.isPending;
+  const typing = focused && !empty;
+
+  useEffect(() => {
+    onTypingChange?.(typing);
+  }, [typing, onTypingChange]);
+
+  /** Uploads each file and reports the ones that did not go through. */
+  const sendFiles = async (commentId?: string) => {
+    const failed: string[] = [];
+    for (const file of files) {
+      try {
+        await upload.mutateAsync({ file, opts: { commentId, internal: internal || (allowInternal && filesInternal) } });
+      } catch {
+        failed.push(file.name);
+      }
+    }
+    if (failed.length) toast.error(t("attachments.uploadFailed", { names: failed.join(", ") }));
+    else if (files.length) toast.success(t("attachments.uploaded", { n: files.length }));
+    setFiles([]);
+    setFilesInternal(false);
+  };
 
   const submit = async () => {
-    if (empty) return;
+    if (empty && files.length === 0) return;
+    if (empty) {
+      await sendFiles();
+      return;
+    }
     try {
-      await addComment.mutateAsync({ content, comment_type: internal ? "internal" : "public" });
+      const comment = await addComment.mutateAsync({ content, comment_type: internal ? "internal" : "public" });
       setContent("");
       toast.success(internal ? t("ticket.noteAdded") : t("ticket.replySent"));
+      if (files.length) await sendFiles(comment.id);
     } catch {
       toast.error(internal ? t("ticket.noteFailed") : t("ticket.replyFailed"));
     }
@@ -51,42 +97,60 @@ export function ReplyComposer({
         internal ? "border-warning/50 bg-warning/5" : "border-border",
       )}
     >
-      {allowInternal && (
-        <div role="tablist" aria-label={t("ticket.replyType")} className="mb-3 inline-flex rounded-lg bg-muted p-1 text-sm">
-          {(["public", "internal"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              onClick={() => setMode(m)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
-                mode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {m === "internal" && <Lock className="h-3.5 w-3.5" />}
-              {m === "public" ? t("ticket.publicReply") : t("ticket.internalNote")}
-            </button>
-          ))}
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {allowInternal && (
+          <div role="tablist" aria-label={t("ticket.replyType")} className="inline-flex self-start rounded-lg bg-muted p-1 text-sm">
+            {(["public", "internal"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
+                  mode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {m === "internal" && <Lock className="h-3.5 w-3.5" />}
+                {m === "public" ? t("ticket.publicReply") : t("ticket.internalNote")}
+              </button>
+            ))}
+          </div>
+        )}
+        {allowMacros && <MacroPicker orgSlug={orgSlug} ticketId={ticketId} disabled={busy} />}
+      </div>
+
+      <div onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
+        <RichTextEditor
+          {...(allowInternal ? mentionEditorProps(agents) : {})}
+          value={content}
+          onChange={setContent}
+          placeholder={internal ? t("ticket.notePlaceholder") : t("ticket.replyPlaceholder")}
+          ariaLabel={internal ? t("ticket.internalNote") : t("ticket.reply")}
+          disabled={busy}
+        />
+      </div>
+
+      {allowAttachments && (
+        <div className="mt-3">
+          <AttachmentDropzone
+            files={files}
+            onChange={setFiles}
+            internal={internal || filesInternal}
+            onInternalChange={allowInternal && !internal ? setFilesInternal : undefined}
+            disabled={busy}
+          />
         </div>
       )}
-
-      <RichTextEditor
-        value={content}
-        onChange={setContent}
-        placeholder={internal ? t("ticket.notePlaceholder") : t("ticket.replyPlaceholder")}
-        ariaLabel={internal ? t("ticket.internalNote") : t("ticket.reply")}
-        disabled={addComment.isPending}
-      />
 
       <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           {internal ? t("ticket.noteHint") : t("ticket.replyHint")}
         </p>
-        <Button onClick={() => void submit()} disabled={empty || addComment.isPending}>
-          {addComment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {internal ? t("ticket.addNote") : t("ticket.sendReply")}
+        <Button onClick={() => void submit()} disabled={(empty && files.length === 0) || busy}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {empty && files.length > 0 ? t("attachments.sendFiles") : internal ? t("ticket.addNote") : t("ticket.sendReply")}
         </Button>
       </div>
     </section>

@@ -8,6 +8,7 @@ import {
   deleteAgent,
   deleteTeam,
   getAgents,
+  getAvailableAgents,
   getTeams,
   updateAgent,
   updateTeam,
@@ -22,6 +23,16 @@ export function useAgents(tenantSlug: string, params: DirectoryListParams = {}, 
     enabled: enabled && !!tenantSlug,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
+  });
+}
+
+/** Agents available for assignment, least loaded first. */
+export function useAvailableAgents(tenantSlug: string, enabled = true) {
+  return useQuery({
+    queryKey: ["agents-available", tenantSlug],
+    queryFn: () => getAvailableAgents(tenantSlug),
+    enabled: enabled && !!tenantSlug,
+    staleTime: 60_000,
   });
 }
 

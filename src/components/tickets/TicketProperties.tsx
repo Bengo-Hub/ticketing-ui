@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { SearchableCombobox } from "@bengo-hub/shared-ui-lib/combobox";
 import { Field } from "@/components/common/field";
+import { TicketTags } from "@/components/tickets/TicketTags";
 import { useAssignTicket, useUpdateTicket, useUpdateTicketStatus } from "@/hooks/useTickets";
 import { useLookups } from "@/hooks/useLookups";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
@@ -125,6 +126,7 @@ export function TicketProperties({ orgSlug, ticket }: { orgSlug: string; ticket:
           emptyText={t("ticket.noAgents")}
         />
       </Field>
+      <TicketTags orgSlug={orgSlug} ticket={ticket} canChange={canChange} />
     </section>
   );
 }

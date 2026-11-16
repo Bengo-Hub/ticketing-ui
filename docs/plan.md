@@ -103,7 +103,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [5](sprints/sprint-5-knowledge-base.md) | Knowledge base | Partial | Public KB outside sign-in, category list, deflection |
 | [6](sprints/sprint-6-analytics.md) | Analytics | Partial | Agent, SLA and CSAT reports, filters, export |
 | [7](sprints/sprint-7-realtime.md) | Real-time updates | Partial | Toasts, unread count, push, presence |
-| [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Pending | Views, bulk bar, macros, merge and link, collision banner, attachments, service worker, Swahili |
+| [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Partial | @mentions (waits on shared-ui-lib v0.1.147), comment author names, keyset paging on the agents, teams and KB lists, offline inbox and queued replies, app shell, Playwright tests |
 | [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Pending | Calendars and holidays, escalation, SLA report, sort by SLA |
 | [10](sprints/sprint-10-channels.md) | Channels | Pending | Forwarding address with verify, WhatsApp toggle, channel views, widget |
 | [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Pending | Rollup-backed dashboard, CSAT, leaderboard, export |
@@ -114,14 +114,14 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | Item | Repo | Where it is fixed |
 |---|---|---|
 | GitHub reports 57 Dependabot alerts on ticketing-ui | UI | Integration review and test pass |
-| No service worker ships in production: next-pwa runs only under webpack and the Docker build uses Turbopack | UI | Sprint 8, app shell and offline |
 | The public support pages still use native form fields and a plain textarea | UI | Sprint 8 |
 | `SLASidebar` always says business hours apply, though deadlines are wall-clock | UI | Sprint 9, with API sprint 10 |
 | Update requests cannot clear a field, because the API's `UpdateTicketRequest` uses pointers with `omitempty` | API | API sprint 9 |
 | Fields the UI needs and the API lacks: stats `resolved_today` and `overdue`, previous-period figures, a tenant user directory for people not yet provisioned in ticketing, a KB category list, comment author names | API | API sprints 9 and 12 |
 | The API's OTP client is not on shared-service-client, because a retried call could replay a one-time code | API | Kept as is by design |
 | `tickets/handler.go` and `identity/handler.go` in ticketing-api are over 400 lines | API | API sprint 9 |
-| The UI sends `search` on the ticket list and `ListTickets` does not read it yet | API | API sprint 9 |
+| Comments page oldest first only, so a long thread opens at its start rather than its latest reply | API | Open |
+| The ticket list filters by one status at a time, so the agent queue tabs split loaded tickets in the browser | API | Open |
 | Turbopack on Windows refuses the shared-ui-lib `@source` path through the pnpm junction, so local verification uses `next build --webpack` while CI builds with Turbopack on Linux | UI | Open |
 
 ## Environment

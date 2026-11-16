@@ -11,6 +11,7 @@ import {
   Tags,
   Timer,
   Users,
+  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import { PERM, type Permission } from "@/lib/rbac/permissions";
@@ -60,6 +61,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: "admin-agents", label: "nav.adminAgents", href: "/admin/agents", icon: Shield, anyOf: [PERM.agentsView, PERM.agentsManage] },
       { id: "admin-analytics", label: "nav.adminAnalytics", href: "/admin/analytics", icon: BarChart3, anyOf: [PERM.analyticsView] },
       { id: "admin-kb", label: "nav.adminKb", href: "/admin/kb", icon: BookOpen, anyOf: [PERM.kbManage] },
+      { id: "admin-macros", label: "nav.adminMacros", href: "/admin/macros", icon: WandSparkles, anyOf: [PERM.kbManage] },
       { id: "admin-categories", label: "nav.adminCategories", href: "/admin/categories", icon: Tags, anyOf: [PERM.categoriesManage] },
       { id: "admin-sla", label: "nav.adminSla", href: "/admin/sla", icon: Timer, anyOf: [PERM.slaView, PERM.slaManage] },
       { id: "admin-routing", label: "nav.adminRouting", href: "/admin/routing", icon: Route, anyOf: [PERM.routingView, PERM.routingManage] },
