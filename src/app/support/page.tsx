@@ -1,25 +1,20 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
+import { RichTextEditor } from "@bengo-hub/shared-ui-lib/rich-text-editor";
 import { fetchTenantBySlug, type TenantBrand } from "@/lib/api/tenant";
 import { createPublicTicket, sendSupportCode, verifySupportCode } from "@/lib/api/public-support";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-  Textarea,
-} from "@/components/ui/base";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@/components/ui/base";
+import { toPlainText } from "@/components/common/rich-text";
+import { CodeStep, supportError } from "@/components/support/code-step";
+import { useT } from "@/hooks/useT";
+import type { Translate } from "@/lib/i18n";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 /**
@@ -27,21 +22,27 @@ import { Loader2, CheckCircle2 } from "lucide-react";
  * the link (/support?org=<slug>, `tenant` also accepted) or typed by the visitor, and checked
  * against auth-api before any code is sent. The visitor's email is then proved with a six-digit
  * code, and the one-use token from that code opens the ticket in ticketing-api.
+ *
+ * The description is written in the shared RichTextEditor and stored as HTML, like tickets raised
+ * from the signed-in app. ticketing-api caps the stored value at 5,000 characters.
  */
 
-const schema = z.object({
-  org: z.string().trim().min(1, "Organization is required"),
-  name: z.string().trim().min(2, "Name is required").max(120, "Name is too long"),
-  email: z.string().trim().email("Valid email is required").max(254),
-  subject: z.string().trim().min(5, "Subject must be at least 5 characters").max(200, "Subject is too long"),
-  description: z
-    .string()
-    .trim()
-    .min(10, "Please describe your issue in more detail")
-    .max(5000, "Please keep the description under 5,000 characters"),
-});
+const DESCRIPTION_MAX = 5000;
 
-type FormData = z.infer<typeof schema>;
+function buildSchema(t: Translate) {
+  return z.object({
+    org: z.string().trim().min(1, t("support.orgRequired")),
+    name: z.string().trim().min(2, t("support.nameRequired")).max(120, t("support.nameTooLong")),
+    email: z.string().trim().email(t("support.emailInvalid")).max(254, t("support.emailInvalid")),
+    subject: z.string().trim().min(5, t("support.subjectShort")).max(200, t("support.subjectLong")),
+    description: z
+      .string()
+      .refine((v) => toPlainText(v).length >= 10, t("support.descriptionShort"))
+      .refine((v) => v.length <= DESCRIPTION_MAX, t("support.descriptionLong")),
+  });
+}
+
+type FormData = z.infer<ReturnType<typeof buildSchema>>;
 type Step = "details" | "code" | "done";
 
 const RESEND_SECONDS = 45;
@@ -55,6 +56,7 @@ export default function SupportPage() {
 }
 
 function SupportForm() {
+  const { t } = useT();
   const params = useSearchParams();
   const linkedSlug = (params.get("org") || params.get("tenant") || "").trim().toLowerCase();
 
@@ -76,9 +78,10 @@ function SupportForm() {
   const [cooldown, setCooldown] = useState(0);
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
 
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormData>({
+  const schema = useMemo(() => buildSchema(t), [t]);
+  const { register, control, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { org: linkedSlug },
+    defaultValues: { org: linkedSlug, name: "", email: "", subject: "", description: "" },
   });
 
   useEffect(() => {
@@ -87,8 +90,8 @@ function SupportForm() {
 
   useEffect(() => {
     if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
   }, [cooldown]);
 
   async function run(fn: () => Promise<void>) {
@@ -97,7 +100,7 @@ function SupportForm() {
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(supportError(err, t));
     } finally {
       setBusy(false);
     }
@@ -107,9 +110,7 @@ function SupportForm() {
     run(async () => {
       const slug = data.org.trim().toLowerCase();
       const found = linkedTenant && linkedTenant.slug === slug ? linkedTenant : await fetchTenantBySlug(slug);
-      if (!found) {
-        throw new Error("We could not find that organization. Check the name in the link you were given.");
-      }
+      if (!found) throw new Error(t("support.orgNotFound"));
       await sendSupportCode(found.slug, data.email.trim());
       setTenant(found);
       setDetails({ ...data, org: found.slug, email: data.email.trim() });
@@ -131,7 +132,7 @@ function SupportForm() {
     e.preventDefault();
     if (!tenant || !details) return;
     if (!/^\d{6}$/.test(code)) {
-      setError("Enter the 6-digit code from the email.");
+      setError(t("support.codeInvalid"));
       return;
     }
     void run(async () => {
@@ -139,7 +140,7 @@ function SupportForm() {
       const res = await createPublicTicket(tenant.slug, token, {
         name: details.name.trim(),
         subject: details.subject.trim(),
-        description: details.description.trim(),
+        description: details.description,
       });
       setTicketNumber(res.ticket_number ?? null);
       setStep("done");
@@ -147,7 +148,7 @@ function SupportForm() {
   }
 
   function startOver() {
-    reset({ org: linkedSlug || details?.org || "", name: details?.name, email: details?.email });
+    reset({ org: linkedSlug || details?.org || "", name: details?.name ?? "", email: details?.email ?? "", subject: "", description: "" });
     setDetails(null);
     setTicketNumber(null);
     setError(null);
@@ -157,20 +158,20 @@ function SupportForm() {
   const orgName = (tenant ?? linkedTenant)?.orgName || (tenant ?? linkedTenant)?.name;
 
   if (step === "done") {
+    const email = details?.email ?? "";
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
           <CheckCircle2 className="h-12 w-12 text-green-500" />
-          <div role="status">
-            <h2 className="text-xl font-semibold">Ticket submitted</h2>
+          <div role="status" className="min-w-0">
+            <h2 className="text-xl font-semibold">{t("support.submitted")}</h2>
             {ticketNumber && (
               <p className="mt-1 text-sm text-muted-foreground">
-                Ticket number: <span className="font-mono font-medium">{ticketNumber}</span>
+                {t("support.ticketNumberIs")} <span className="font-mono font-medium">{ticketNumber}</span>
               </p>
             )}
-            <p className="mt-3 text-sm text-muted-foreground">
-              {orgName ? `${orgName} will reply to ` : "Replies go to "}
-              <span className="font-medium text-foreground">{details?.email}</span>.
+            <p className="mt-3 text-sm text-muted-foreground wrap-break-word">
+              {orgName ? t("support.orgWillReply", { org: orgName, email }) : t("support.repliesGoTo", { email })}
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
@@ -179,12 +180,12 @@ function SupportForm() {
                 <Link
                   href={`/support/track?org=${encodeURIComponent(tenant.slug)}&ticket=${encodeURIComponent(ticketNumber)}`}
                 >
-                  Track this ticket
+                  {t("support.trackThis")}
                 </Link>
               </Button>
             )}
             <Button variant="outline" onClick={startOver}>
-              Submit another request
+              {t("support.submitAnother")}
             </Button>
           </div>
         </CardContent>
@@ -194,58 +195,21 @@ function SupportForm() {
 
   if (step === "code" && details) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            We sent a 6-digit code to <span className="font-medium text-foreground">{details.email}</span>. It
-            expires in 10 minutes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onCode} className="space-y-4">
-            <div className="max-w-xs space-y-1">
-              <Label htmlFor="otp">Verification code</Label>
-              <Input
-                id="otp"
-                required
-                autoFocus
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                className="text-center font-mono text-lg tracking-[0.4em]"
-              />
-            </div>
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="submit" disabled={busy || code.length !== 6}>
-                {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verify and submit
-              </Button>
-              <Button type="button" variant="ghost" disabled={busy || cooldown > 0} onClick={resend}>
-                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={() => {
-                  setError(null);
-                  setStep("details");
-                }}
-              >
-                Change details
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <CodeStep
+        email={details.email}
+        code={code}
+        onCodeChange={setCode}
+        error={error}
+        busy={busy}
+        cooldown={cooldown}
+        submitLabel={t("support.verifySubmit")}
+        onSubmit={onCode}
+        onResend={resend}
+        onChangeDetails={() => {
+          setError(null);
+          setStep("details");
+        }}
+      />
     );
   }
 
@@ -254,69 +218,78 @@ function SupportForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{linkedTenant ? `Contact ${linkedTenant.orgName || linkedTenant.name}` : "Submit a support request"}</CardTitle>
-        <CardDescription>
-          Fill in the form below and the team will get back to you by email. We send a short code to your email
-          first to confirm the address is yours.
-        </CardDescription>
+        <CardTitle>
+          {linkedTenant
+            ? t("support.newTitleOrg", { org: linkedTenant.orgName || linkedTenant.name })
+            : t("support.newTitle")}
+        </CardTitle>
+        <CardDescription>{t("support.newIntro")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onDetails} className="space-y-4" noValidate>
           {linkedSlug && linked.isLoading && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading organization...
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("support.loadingOrg")}
             </p>
           )}
 
           {showOrgField && (
             <div className="space-y-1">
-              <Label htmlFor="org">Organization</Label>
-              <Input id="org" {...register("org")} placeholder="your-company" autoCapitalize="none" />
-              <p className="text-xs text-muted-foreground">
-                The organization&apos;s short name, as it appears in its Codevertex links.
-              </p>
-              {linkedSlug && !linkedTenant && (
-                <p className="text-xs text-destructive">The organization in this link was not found.</p>
-              )}
+              <Label htmlFor="org">{t("support.orgLabel")}</Label>
+              <Input id="org" {...register("org")} placeholder={t("support.orgPlaceholder")} autoCapitalize="none" />
+              <p className="text-xs text-muted-foreground">{t("support.orgHint")}</p>
+              {linkedSlug && !linkedTenant && <p className="text-xs text-destructive">{t("support.orgNotInLink")}</p>}
               {errors.org && <p className="text-xs text-destructive">{errors.org.message}</p>}
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="name">Your name</Label>
-              <Input id="name" autoComplete="name" {...register("name")} placeholder="Jane Doe" />
+            <div className="min-w-0 space-y-1">
+              <Label htmlFor="name">{t("support.name")}</Label>
+              <Input id="name" autoComplete="name" {...register("name")} placeholder={t("support.namePlaceholder")} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="email">Email address</Label>
+            <div className="min-w-0 space-y-1">
+              <Label htmlFor="email">{t("support.email")}</Label>
               <Input
                 id="email"
                 type="email"
+                inputMode="email"
                 autoComplete="email"
                 {...register("email")}
-                placeholder="jane@example.com"
+                placeholder={t("support.emailPlaceholder")}
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="subject">Subject</Label>
-            <Input id="subject" maxLength={200} {...register("subject")} placeholder="Brief description of your issue" />
+            <Label htmlFor="subject">{t("support.subject")}</Label>
+            <Input id="subject" maxLength={200} {...register("subject")} placeholder={t("support.subjectPlaceholder")} />
             {errors.subject && <p className="text-xs text-destructive">{errors.subject.message}</p>}
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              maxLength={5000}
-              {...register("description")}
-              placeholder="Describe your issue in detail..."
-              rows={5}
+          <div className="min-w-0 space-y-1">
+            <Label id="description-label">{t("support.description")}</Label>
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder={t("support.descriptionPlaceholder")}
+                  ariaLabelledBy="description-label"
+                  ariaDescribedBy={errors.description ? "description-error" : undefined}
+                  disabled={busy}
+                />
+              )}
             />
-            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+            {errors.description && (
+              <p id="description-error" className="text-xs text-destructive">
+                {errors.description.message}
+              </p>
+            )}
           </div>
 
           {error && (
@@ -327,15 +300,15 @@ function SupportForm() {
 
           <Button type="submit" className="w-full" disabled={busy || (!!linkedSlug && linked.isLoading)}>
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {busy ? "Sending code..." : "Continue"}
+            {busy ? t("support.sendingCode") : t("common.continue")}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            Already have a ticket?{" "}
+            {t("support.haveTicket")}{" "}
             <Link
               href={linkedSlug ? `/support/track?org=${encodeURIComponent(linkedSlug)}` : "/support/track"}
               className="font-medium text-primary hover:underline"
             >
-              Track it here
+              {t("support.trackIt")}
             </Link>
           </p>
         </form>

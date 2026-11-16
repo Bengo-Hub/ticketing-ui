@@ -14,10 +14,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PERM, type Permission } from "@/lib/rbac/permissions";
+import type { MessageKey } from "@/lib/i18n";
 
 export interface NavItem {
   id: string;
-  label: string;
+  /** Message key of the label; screens translate it with useT(). */
+  label: MessageKey;
   href: string;
   icon: LucideIcon;
   /** Shown when the person holds any of these ticketing permissions. */
@@ -25,38 +27,43 @@ export interface NavItem {
 }
 
 export interface NavSection {
-  title: string;
+  id: "tickets" | "agent" | "admin";
+  /** Message key of the section heading. */
+  title: MessageKey;
   items: NavItem[];
 }
 
 /** One navigation definition for the sidebar and the mobile bottom bar. */
 export const NAV_SECTIONS: NavSection[] = [
   {
-    title: "Tickets",
+    id: "tickets",
+    title: "nav.sectionTickets",
     items: [
-      { id: "tickets", label: "Tickets", href: "/tickets", icon: ClipboardList, anyOf: [PERM.ticketsView, PERM.ticketsViewOwn] },
-      { id: "new-ticket", label: "Create Ticket", href: "/tickets/new", icon: PlusCircle, anyOf: [PERM.ticketsAdd] },
-      { id: "kb", label: "Knowledge Base", href: "/kb", icon: BookOpen, anyOf: [PERM.kbView] },
+      { id: "tickets", label: "nav.tickets", href: "/tickets", icon: ClipboardList, anyOf: [PERM.ticketsView, PERM.ticketsViewOwn] },
+      { id: "new-ticket", label: "nav.newTicket", href: "/tickets/new", icon: PlusCircle, anyOf: [PERM.ticketsAdd] },
+      { id: "kb", label: "nav.kb", href: "/kb", icon: BookOpen, anyOf: [PERM.kbView] },
     ],
   },
   {
-    title: "Agent",
+    id: "agent",
+    title: "nav.sectionAgent",
     items: [
-      { id: "agent-inbox", label: "My Inbox", href: "/agent", icon: HeadphonesIcon, anyOf: [PERM.ticketsView] },
+      { id: "agent-inbox", label: "nav.agentInbox", href: "/agent", icon: HeadphonesIcon, anyOf: [PERM.ticketsView] },
     ],
   },
   {
-    title: "Admin",
+    id: "admin",
+    title: "nav.sectionAdmin",
     items: [
-      { id: "admin", label: "Dashboard", href: "/admin", icon: LayoutDashboard, anyOf: [PERM.analyticsView] },
-      { id: "admin-teams", label: "Teams", href: "/admin/teams", icon: Users, anyOf: [PERM.teamsView, PERM.teamsManage] },
-      { id: "admin-agents", label: "Agents", href: "/admin/agents", icon: Shield, anyOf: [PERM.agentsView, PERM.agentsManage] },
-      { id: "admin-analytics", label: "Analytics", href: "/admin/analytics", icon: BarChart3, anyOf: [PERM.analyticsView] },
-      { id: "admin-kb", label: "Knowledge Base", href: "/admin/kb", icon: BookOpen, anyOf: [PERM.kbManage] },
-      { id: "admin-categories", label: "Categories", href: "/admin/categories", icon: Tags, anyOf: [PERM.categoriesManage] },
-      { id: "admin-sla", label: "SLA Policies", href: "/admin/sla", icon: Timer, anyOf: [PERM.slaView, PERM.slaManage] },
-      { id: "admin-routing", label: "Routing Rules", href: "/admin/routing", icon: Route, anyOf: [PERM.routingView, PERM.routingManage] },
-      { id: "admin-settings", label: "Settings", href: "/admin/settings", icon: Settings, anyOf: [PERM.settingsManage] },
+      { id: "admin", label: "nav.admin", href: "/admin", icon: LayoutDashboard, anyOf: [PERM.analyticsView] },
+      { id: "admin-teams", label: "nav.adminTeams", href: "/admin/teams", icon: Users, anyOf: [PERM.teamsView, PERM.teamsManage] },
+      { id: "admin-agents", label: "nav.adminAgents", href: "/admin/agents", icon: Shield, anyOf: [PERM.agentsView, PERM.agentsManage] },
+      { id: "admin-analytics", label: "nav.adminAnalytics", href: "/admin/analytics", icon: BarChart3, anyOf: [PERM.analyticsView] },
+      { id: "admin-kb", label: "nav.adminKb", href: "/admin/kb", icon: BookOpen, anyOf: [PERM.kbManage] },
+      { id: "admin-categories", label: "nav.adminCategories", href: "/admin/categories", icon: Tags, anyOf: [PERM.categoriesManage] },
+      { id: "admin-sla", label: "nav.adminSla", href: "/admin/sla", icon: Timer, anyOf: [PERM.slaView, PERM.slaManage] },
+      { id: "admin-routing", label: "nav.adminRouting", href: "/admin/routing", icon: Route, anyOf: [PERM.routingView, PERM.routingManage] },
+      { id: "admin-settings", label: "nav.adminSettings", href: "/admin/settings", icon: Settings, anyOf: [PERM.settingsManage] },
     ],
   },
 ];

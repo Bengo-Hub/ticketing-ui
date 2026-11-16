@@ -3,6 +3,7 @@
 import { PwaInstallPrompt } from '@bengo-hub/shared-ui-lib/offline';
 import { requestAppPermissions } from '@/hooks/use-app-permissions';
 import { useBranding } from '@/providers/branding-provider';
+import { useT } from '@/hooks/useT';
 
 /**
  * The fleet's install banner (shared-ui-lib PwaInstallPrompt), mounted once inside the tenant
@@ -10,11 +11,12 @@ import { useBranding } from '@/providers/branding-provider';
  */
 export function PWARegistration() {
   const { tenant, getServiceTitle } = useBranding();
+  const { t } = useT();
   return (
     <PwaInstallPrompt
-      appName={getServiceTitle('Ticketing')}
+      appName={getServiceTitle(t('common.appName'))}
       logoUrl={tenant?.logoUrl ?? '/logo.png'}
-      tagline="Answer tickets and follow up from your phone."
+      tagline={t('shell.installTagline')}
       dismissKey="tkt_pwa_install_dismissed_until"
       onInstalled={requestAppPermissions}
       className="mb-20 lg:mb-0"

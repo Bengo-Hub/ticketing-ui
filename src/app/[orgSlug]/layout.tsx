@@ -6,7 +6,8 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { BrandingProvider } from "@/providers/branding-provider";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { StaleChunkRecovery } from "@bengo-hub/shared-ui-lib/offline";
+import { OfflineBar, PwaUpdater, StaleChunkRecovery } from "@bengo-hub/shared-ui-lib/offline";
+import { useT } from "@/hooks/useT";
 import { PWARegistration } from "@/components/pwa-registration";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -32,6 +33,7 @@ function ManifestInjector() {
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { t } = useT();
 
   return (
     <AuthProvider>
@@ -39,6 +41,18 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         <ManifestInjector />
         <StaleChunkRecovery />
         <PWARegistration />
+        {/*
+          The shared OfflineBar registers the committed public/sw.js (production only) and shows the
+          offline ribbon. Its built-in updater is English only, so the updater is mounted on its own
+          with translated text.
+        */}
+        <PwaUpdater message={t("shell.updateAvailable")} actionLabel={t("shell.updateNow")} tone="theme" />
+        <OfflineBar
+          registerSW
+          showUpdater={false}
+          availableOffline={[t("shell.offlineReadable")]}
+          disabledOffline={[t("shell.offlineDisabled")]}
+        />
         <div className="flex min-h-dvh flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <div className="flex flex-1 overflow-hidden">

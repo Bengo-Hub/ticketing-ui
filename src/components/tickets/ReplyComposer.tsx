@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/base";
 import { toPlainText } from "@/components/common/rich-text";
 import { useAddComment } from "@/hooks/useTickets";
 import { cn } from "@/lib/utils";
+import { useT } from "@/hooks/useT";
 
 type Mode = "public" | "internal";
 
@@ -24,6 +25,7 @@ export function ReplyComposer({
   ticketId: string;
   allowInternal: boolean;
 }) {
+  const { t } = useT();
   const [mode, setMode] = useState<Mode>("public");
   const [content, setContent] = useState("");
   const addComment = useAddComment(orgSlug, ticketId);
@@ -35,22 +37,22 @@ export function ReplyComposer({
     try {
       await addComment.mutateAsync({ content, comment_type: internal ? "internal" : "public" });
       setContent("");
-      toast.success(internal ? "Internal note added" : "Reply sent");
+      toast.success(internal ? t("ticket.noteAdded") : t("ticket.replySent"));
     } catch {
-      toast.error(internal ? "The note could not be saved." : "The reply could not be sent.");
+      toast.error(internal ? t("ticket.noteFailed") : t("ticket.replyFailed"));
     }
   };
 
   return (
     <section
-      aria-label="Reply"
+      aria-label={t("ticket.reply")}
       className={cn(
         "rounded-xl border bg-card p-3 sm:p-4",
         internal ? "border-warning/50 bg-warning/5" : "border-border",
       )}
     >
       {allowInternal && (
-        <div role="tablist" aria-label="Reply type" className="mb-3 inline-flex rounded-lg bg-muted p-1 text-sm">
+        <div role="tablist" aria-label={t("ticket.replyType")} className="mb-3 inline-flex rounded-lg bg-muted p-1 text-sm">
           {(["public", "internal"] as const).map((m) => (
             <button
               key={m}
@@ -64,7 +66,7 @@ export function ReplyComposer({
               )}
             >
               {m === "internal" && <Lock className="h-3.5 w-3.5" />}
-              {m === "public" ? "Public reply" : "Internal note"}
+              {m === "public" ? t("ticket.publicReply") : t("ticket.internalNote")}
             </button>
           ))}
         </div>
@@ -73,18 +75,18 @@ export function ReplyComposer({
       <RichTextEditor
         value={content}
         onChange={setContent}
-        placeholder={internal ? "Write a note only staff can see" : "Write a reply to the customer"}
-        ariaLabel={internal ? "Internal note" : "Reply"}
+        placeholder={internal ? t("ticket.notePlaceholder") : t("ticket.replyPlaceholder")}
+        ariaLabel={internal ? t("ticket.internalNote") : t("ticket.reply")}
         disabled={addComment.isPending}
       />
 
       <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
-          {internal ? "Only your team sees internal notes." : "The customer sees public replies."}
+          {internal ? t("ticket.noteHint") : t("ticket.replyHint")}
         </p>
         <Button onClick={() => void submit()} disabled={empty || addComment.isPending}>
           {addComment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {internal ? "Add note" : "Send reply"}
+          {internal ? t("ticket.addNote") : t("ticket.sendReply")}
         </Button>
       </div>
     </section>

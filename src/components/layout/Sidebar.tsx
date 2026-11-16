@@ -8,6 +8,7 @@ import { useParams, usePathname } from "next/navigation";
 import { useBranding } from "@/providers/branding-provider";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { visibleNav, type NavItem } from "@/lib/nav";
+import { useT } from "@/hooks/useT";
 
 interface SidebarProps {
   open?: boolean;
@@ -27,6 +28,7 @@ function NavLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const { t } = useT();
   // The longest matching href wins, so "/admin" is not also lit on "/admin/teams".
   const activeHref = items
     .map((i) => i.href)
@@ -57,7 +59,7 @@ function NavLinks({
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
+              <span className="truncate">{t(item.label)}</span>
             </Link>
           );
         })}
@@ -74,6 +76,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { tenant } = useBranding();
   const { can } = useServicePermissions(orgSlug);
   const sections = visibleNav(can);
+  const { t } = useT();
 
   return (
     <>
@@ -99,14 +102,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{tenant?.orgName || "Support"}</p>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">Ticketing</p>
+                <p className="truncate text-sm font-bold">{tenant?.orgName || t("shell.support")}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">{t("common.appName")}</p>
               </div>
             </Link>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close menu"
+              aria-label={t("shell.closeMenu")}
               className="rounded-lg p-1.5 text-sidebar-muted hover:bg-sidebar-accent lg:hidden"
             >
               <X className="h-4 w-4" />
@@ -115,8 +118,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
           {sections.map((s) => (
             <NavLinks
-              key={s.title}
-              title={s.title}
+              key={s.id}
+              title={t(s.title)}
               items={s.items}
               orgSlug={orgSlug}
               pathname={pathname}
@@ -132,14 +135,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold">{tenant?.name || orgSlug}</p>
-              <p className="text-[10px] text-sidebar-muted">Support hub</p>
+              <p className="text-[10px] text-sidebar-muted">{t("shell.supportHub")}</p>
             </div>
             <button
               type="button"
               onClick={() => void logout()}
               className="rounded-lg p-2 text-sidebar-muted transition-colors hover:text-destructive"
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={t("common.signOut")}
+              title={t("common.signOut")}
             >
               <LogOut className="h-4 w-4" />
             </button>

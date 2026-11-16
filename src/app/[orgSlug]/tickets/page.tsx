@@ -14,7 +14,8 @@ import { PERM } from "@/lib/rbac/permissions";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/base";
 import { buildTicketColumns } from "@/components/tickets/ticket-columns";
-import { CHANNEL_OPTIONS, PRIORITY_OPTIONS, STATUS_OPTIONS } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
+import { useT } from "@/hooks/useT";
 import { orgRoute } from "@/lib/utils";
 import type { TicketChannel, TicketPriority, TicketStatus } from "@/types/tickets";
 
@@ -27,6 +28,8 @@ export default function TicketsPage() {
   useTicketStream(orgSlug);
   const { can } = useServicePermissions(orgSlug);
   const { agentName, categoryName, categoryOptions } = useLookups(orgSlug);
+  const { t } = useT();
+  const labels = useTicketLabels();
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -52,7 +55,10 @@ export default function TicketsPage() {
   const rows = query.data?.data ?? [];
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
-  const columns = useMemo(() => buildTicketColumns({ agentName, categoryName }), [agentName, categoryName]);
+  const columns = useMemo(
+    () => buildTicketColumns({ agentName, categoryName, labels, t }),
+    [agentName, categoryName, labels, t],
+  );
 
   // Every filter change starts again from the first page.
   const filter = <T,>(set: (v: T) => void) => (v: T) => {
@@ -64,13 +70,13 @@ export default function TicketsPage() {
     <div className="space-y-4">
       <PageHeader
         icon={ClipboardList}
-        title="Tickets"
-        subtitle={total > 0 ? `${total} tickets, newest first` : "Newest first"}
+        title={t("tickets.title")}
+        subtitle={total > 0 ? t("tickets.subtitleCount", { n: total }) : t("tickets.newestFirst")}
         actions={
           can(PERM.ticketsAdd) ? (
             <Button onClick={() => router.push(orgRoute(orgSlug, "/tickets/new"))}>
               <PlusCircle className="h-4 w-4" />
-              New ticket
+              {t("tickets.newTicket")}
             </Button>
           ) : undefined
         }
@@ -84,7 +90,7 @@ export default function TicketsPage() {
         loadingRows={6}
         error={query.isError}
         onRetry={() => void query.refetch()}
-        emptyText={search.term || status || priority || channel || categoryId ? "No tickets match these filters." : "No tickets yet."}
+        emptyText={search.term || status || priority || channel || categoryId ? t("tickets.emptyFiltered") : t("tickets.empty")}
         onRowClick={(t) => router.push(orgRoute(orgSlug, `/tickets/${t.id}`))}
         storageKey="ticketing.inbox.columns"
         maxBodyHeight={false}
@@ -100,37 +106,37 @@ export default function TicketsPage() {
             <SearchInput
               search={search}
               busy={query.isFetching}
-              placeholder="Search tickets"
+              placeholder={t("tickets.search")}
               className="col-span-2 lg:col-span-1"
             />
             <SearchableCombobox
-              options={STATUS_OPTIONS}
+              options={labels.statusOptions}
               value={status}
               onChange={(v) => filter(setStatus)(v as TicketStatus | "")}
-              placeholder="All statuses"
-              searchPlaceholder="Status"
+              placeholder={t("tickets.allStatuses")}
+              searchPlaceholder={t("tickets.status")}
             />
             <SearchableCombobox
-              options={PRIORITY_OPTIONS}
+              options={labels.priorityOptions}
               value={priority}
               onChange={(v) => filter(setPriority)(v as TicketPriority | "")}
-              placeholder="All priorities"
-              searchPlaceholder="Priority"
+              placeholder={t("tickets.allPriorities")}
+              searchPlaceholder={t("tickets.priority")}
             />
             <SearchableCombobox
-              options={CHANNEL_OPTIONS}
+              options={labels.channelOptions}
               value={channel}
               onChange={(v) => filter(setChannel)(v as TicketChannel | "")}
-              placeholder="All channels"
-              searchPlaceholder="Channel"
+              placeholder={t("tickets.allChannels")}
+              searchPlaceholder={t("tickets.channel")}
             />
             <SearchableCombobox
               options={categoryOptions}
               value={categoryId}
               onChange={filter(setCategoryId)}
-              placeholder="All categories"
-              searchPlaceholder="Category"
-              emptyText="No categories"
+              placeholder={t("tickets.allCategories")}
+              searchPlaceholder={t("tickets.category")}
+              emptyText={t("tickets.noCategories")}
             />
           </div>
         }

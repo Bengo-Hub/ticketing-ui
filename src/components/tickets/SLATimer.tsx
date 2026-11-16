@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/hooks/useT";
+import type { Translate } from "@/lib/i18n";
 
 interface SLATimerProps {
   dueAt: string;
@@ -11,16 +13,16 @@ interface SLATimerProps {
   className?: string;
 }
 
-function formatDuration(ms: number): string {
-  if (ms <= 0) return "Overdue";
+function formatDuration(ms: number, t: Translate): string {
+  if (ms <= 0) return t("time.overdue");
   const totalSeconds = Math.floor(ms / 1000);
   const days = Math.floor(totalSeconds / 86400);
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
+  if (days > 0) return t("time.daysHours", { d: days, h: hours });
+  if (hours > 0) return t("time.hoursMinutes", { h: hours, m: minutes });
+  return t("time.minutes", { m: minutes });
 }
 
 // The prop carries only the deadline, not when the clock started, so colour bands measure the time
@@ -28,6 +30,7 @@ function formatDuration(ms: number): string {
 const COLOUR_WINDOW_MS = 4 * 60 * 60 * 1000;
 
 export function SLATimer({ dueAt, breached, label, className }: SLATimerProps) {
+  const { t } = useT();
   const [remaining, setRemaining] = useState<number>(0);
 
   useEffect(() => {
@@ -62,7 +65,7 @@ export function SLATimer({ dueAt, breached, label, className }: SLATimerProps) {
       <div className="leading-tight">
         {label && <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>}
         <span className={cn("text-xs font-semibold tabular-nums", colour)}>
-          {breached ? "Breached" : formatDuration(remaining)}
+          {breached ? t("sla.breached") : formatDuration(remaining, t)}
         </span>
       </div>
     </div>

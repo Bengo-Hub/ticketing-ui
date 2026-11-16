@@ -1,15 +1,8 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
 
-const withPWA = withPWAInit({
-  dest: "public",
-  register: true,
-  disable: process.env.NODE_ENV === "development",
-  workboxOptions: {
-    skipWaiting: false,
-    clientsClaim: true,
-  },
-});
+// Offline and caching come from the committed hand-written service worker at public/sw.js,
+// registered by the shared OfflineBar. This is the maskani-ui setup: next-pwa ran only under
+// webpack, so the Turbopack build shipped no worker at all, and no build step writes public/sw.js now.
 
 // Standalone output is only needed in Docker/CI production builds.
 // On Windows dev machines it fails with EPERM symlink errors.
@@ -35,4 +28,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;

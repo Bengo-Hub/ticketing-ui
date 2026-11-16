@@ -10,7 +10,7 @@ import { useDeleteSLAPolicy, useSLAPolicies } from "@/hooks/useSLA";
 import { useLookups } from "@/hooks/useLookups";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { PERM } from "@/lib/rbac/permissions";
-import { PRIORITY_OPTIONS } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import { PageHeader } from "@/components/common/page-header";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { Button } from "@/components/ui/base";
@@ -31,6 +31,7 @@ export default function SLAPoliciesPage() {
   const { can } = useServicePermissions(orgSlug);
   const canManage = can(PERM.slaManage);
   const { categoryName, categoryOptions } = useLookups(orgSlug);
+  const labels = useTicketLabels();
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -119,7 +120,7 @@ export default function SLAPoliciesPage() {
         toolbar={
           <div className="grid w-full grid-cols-2 gap-2 sm:max-w-md">
             <SearchableCombobox
-              options={PRIORITY_OPTIONS}
+              options={labels.priorityOptions}
               value={priority}
               onChange={(v) => {
                 setPriority(v as TicketPriority | "");

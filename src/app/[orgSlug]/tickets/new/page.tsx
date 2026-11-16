@@ -16,7 +16,7 @@ import { useCreateTicket } from "@/hooks/useTickets";
 import { useCategories } from "@/hooks/useCategories";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { searchPublicArticles } from "@/lib/api/kb";
-import { CHANNEL_OPTIONS, PRIORITY_OPTIONS } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import { PageHeader } from "@/components/common/page-header";
 import { Field } from "@/components/common/field";
 import { toPlainText } from "@/components/common/rich-text";
@@ -40,6 +40,7 @@ export default function NewTicketPage() {
   const { isStaff } = useServicePermissions(orgSlug);
   const { data: categories = [] } = useCategories(orgSlug);
   const createTicket = useCreateTicket(orgSlug);
+  const labels = useTicketLabels();
   const [deflectionDismissed, setDeflectionDismissed] = useState(false);
 
   const {
@@ -167,7 +168,7 @@ export default function NewTicketPage() {
                   name="priority"
                   render={({ field }) => (
                     <SearchableCombobox
-                      options={PRIORITY_OPTIONS}
+                      options={labels.priorityOptions}
                       value={field.value}
                       onChange={(v) => v && field.onChange(v)}
                       clearable={false}
@@ -199,7 +200,7 @@ export default function NewTicketPage() {
                     name="channel"
                     render={({ field }) => (
                       <SearchableCombobox
-                        options={CHANNEL_OPTIONS}
+                        options={labels.channelOptions}
                         value={field.value}
                         onChange={(v) => v && field.onChange(v)}
                         clearable={false}

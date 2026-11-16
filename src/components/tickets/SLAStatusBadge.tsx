@@ -1,5 +1,9 @@
+"use client";
+
 import { AlertTriangle, CheckCircle, Clock, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/hooks/useT";
+import type { MessageKey } from "@/lib/i18n";
 import type { Ticket } from "@/types/tickets";
 
 type SLAState = "on_track" | "at_risk" | "breached_response" | "breached_resolution";
@@ -27,24 +31,24 @@ function getSLAState(ticket: Ticket): SLAState | null {
   return "on_track";
 }
 
-const CONFIG: Record<SLAState, { label: string; icon: React.ElementType; className: string }> = {
+const CONFIG: Record<SLAState, { label: MessageKey; icon: React.ElementType; className: string }> = {
   on_track: {
-    label: "SLA On Track",
+    label: "sla.onTrack",
     icon: CheckCircle,
     className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   },
   at_risk: {
-    label: "SLA At Risk",
+    label: "sla.atRisk",
     icon: Clock,
     className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   },
   breached_response: {
-    label: "Response Breached",
+    label: "sla.responseBreached",
     icon: AlertTriangle,
     className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   },
   breached_resolution: {
-    label: "SLA Breached",
+    label: "sla.slaBreached",
     icon: ShieldAlert,
     className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   },
@@ -56,6 +60,7 @@ interface SLAStatusBadgeProps {
 }
 
 export function SLAStatusBadge({ ticket, className }: SLAStatusBadgeProps) {
+  const { t } = useT();
   const state = getSLAState(ticket);
   if (!state) return null;
 
@@ -70,7 +75,7 @@ export function SLAStatusBadge({ ticket, className }: SLAStatusBadgeProps) {
       )}
     >
       <Icon className="h-3 w-3" />
-      {label}
+      {t(label)}
     </span>
   );
 }

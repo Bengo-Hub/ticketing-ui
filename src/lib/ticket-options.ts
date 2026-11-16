@@ -1,42 +1,23 @@
+import { useMemo } from "react";
 import type { ComboboxOption } from "@bengo-hub/shared-ui-lib/combobox";
+import { useT } from "@/hooks/useT";
+import { getLocale, translate, type Translate } from "@/lib/i18n";
 import type { TicketChannel, TicketPriority, TicketStatus } from "@/types/tickets";
 
-export const STATUS_LABEL: Record<TicketStatus, string> = {
-  new: "New",
-  open: "Open",
-  in_progress: "In progress",
-  pending_customer: "Pending customer",
-  pending_internal: "Pending internal",
-  resolved: "Resolved",
-  closed: "Closed",
-  cancelled: "Cancelled",
-};
+export const TICKET_STATUSES: readonly TicketStatus[] = [
+  "new",
+  "open",
+  "in_progress",
+  "pending_customer",
+  "pending_internal",
+  "resolved",
+  "closed",
+  "cancelled",
+];
 
-export const PRIORITY_LABEL: Record<TicketPriority, string> = {
-  low: "Low",
-  normal: "Normal",
-  high: "High",
-  urgent: "Urgent",
-  critical: "Critical",
-};
+export const TICKET_PRIORITIES: readonly TicketPriority[] = ["low", "normal", "high", "urgent", "critical"];
 
-export const CHANNEL_LABEL: Record<TicketChannel, string> = {
-  web: "Web",
-  email: "Email",
-  api: "API",
-  chat: "Chat",
-  whatsapp: "WhatsApp",
-  phone: "Phone",
-  internal: "Internal",
-};
-
-function options<K extends string>(labels: Record<K, string>): ComboboxOption[] {
-  return (Object.keys(labels) as K[]).map((value) => ({ value, label: labels[value] }));
-}
-
-export const STATUS_OPTIONS = options(STATUS_LABEL);
-export const PRIORITY_OPTIONS = options(PRIORITY_LABEL);
-export const CHANNEL_OPTIONS = options(CHANNEL_LABEL);
+export const TICKET_CHANNELS: readonly TicketChannel[] = ["web", "email", "api", "chat", "whatsapp", "phone", "internal"];
 
 /** Mirrors ticketing-api tickets.validTransitions: the statuses each status may move to. */
 export const STATUS_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
@@ -50,7 +31,50 @@ export const STATUS_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
   cancelled: [],
 };
 
-/** The current status plus the ones the API accepts from it. */
-export function statusOptionsFrom(current: TicketStatus): ComboboxOption[] {
-  return [current, ...STATUS_TRANSITIONS[current]].map((s) => ({ value: s, label: STATUS_LABEL[s] }));
+/** Labels and picker options for statuses, priorities and channels in one language. */
+export interface TicketLabels {
+  /** Unknown values from the API come back as sent. */
+  status: (s: string) => string;
+  priority: (p: string) => string;
+  channel: (c: string) => string;
+  statusOptions: ComboboxOption[];
+  priorityOptions: ComboboxOption[];
+  channelOptions: ComboboxOption[];
+  /** The current status plus the ones the API accepts from it. */
+  statusOptionsFrom: (current: TicketStatus) => ComboboxOption[];
+}
+
+function has<T extends string>(list: readonly T[], v: string): v is T {
+  return (list as readonly string[]).includes(v);
+}
+
+export function ticketLabels(t: Translate): TicketLabels {
+  const status = (s: string) => (has(TICKET_STATUSES, s) ? t(`ticketStatus.${s}`) : s);
+  const priority = (p: string) => (has(TICKET_PRIORITIES, p) ? t(`ticketPriority.${p}`) : p);
+  const channel = (c: string) => (has(TICKET_CHANNELS, c) ? t(`ticketChannel.${c}`) : c);
+  return {
+    status,
+    priority,
+    channel,
+    statusOptions: TICKET_STATUSES.map((value) => ({ value, label: status(value) })),
+    priorityOptions: TICKET_PRIORITIES.map((value) => ({ value, label: priority(value) })),
+    channelOptions: TICKET_CHANNELS.map((value) => ({ value, label: channel(value) })),
+    statusOptionsFrom: (current) =>
+      [current, ...STATUS_TRANSITIONS[current]].map((value) => ({ value, label: status(value) })),
+  };
+}
+
+/**
+ * Labels in the language active right now, for plain helpers such as column builders. Components
+ * use useTicketLabels so they re-render when the language changes.
+ */
+export function currentTicketLabels(): TicketLabels {
+  const locale = getLocale();
+  return ticketLabels((key, vars) => translate(locale, key, vars));
+}
+
+/** Ticket labels in the active language, rebuilt when the language changes. */
+export function useTicketLabels(): TicketLabels {
+  const { t } = useT();
+  return useMemo(() => ticketLabels(t), [t]);
 }

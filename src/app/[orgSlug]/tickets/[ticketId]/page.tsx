@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useDeleteTicket, useTicket, useTicketComments } from "@/hooks/useTickets";
 import { useCommentStream } from "@/hooks/useSSE";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { useT } from "@/hooks/useT";
 import { PERM } from "@/lib/rbac/permissions";
 import { PageHeader } from "@/components/common/page-header";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -18,7 +19,7 @@ import { SLASidebar } from "@/components/tickets/SLASidebar";
 import { TicketConversation } from "@/components/tickets/TicketConversation";
 import { ReplyComposer } from "@/components/tickets/ReplyComposer";
 import { TicketProperties } from "@/components/tickets/TicketProperties";
-import { CHANNEL_LABEL } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import { formatDateTime, formatRelativeTime, orgRoute } from "@/lib/utils";
 import type { Ticket } from "@/types/tickets";
 
@@ -32,17 +33,23 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 }
 
 function TicketDetails({ ticket }: { ticket: Ticket }) {
+  const { t } = useT();
+  const labels = useTicketLabels();
   return (
-    <section aria-label="Details" className="space-y-2.5 rounded-xl border border-border bg-card p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Details</h2>
-      <DetailRow label="Channel">{CHANNEL_LABEL[ticket.channel] ?? ticket.channel}</DetailRow>
-      <DetailRow label="Created">{formatDateTime(ticket.created_at)}</DetailRow>
-      <DetailRow label="Updated">{formatRelativeTime(ticket.updated_at)}</DetailRow>
-      {ticket.first_response_at && <DetailRow label="First response">{formatDateTime(ticket.first_response_at)}</DetailRow>}
-      {ticket.resolved_at && <DetailRow label="Resolved">{formatDateTime(ticket.resolved_at)}</DetailRow>}
-      {ticket.closed_at && <DetailRow label="Closed">{formatDateTime(ticket.closed_at)}</DetailRow>}
-      {ticket.escalation_level > 0 && <DetailRow label="Escalation">Level {ticket.escalation_level}</DetailRow>}
-      {ticket.external_reference && <DetailRow label="Reference">{ticket.external_reference}</DetailRow>}
+    <section aria-label={t("ticket.details")} className="space-y-2.5 rounded-xl border border-border bg-card p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("ticket.details")}</h2>
+      <DetailRow label={t("ticket.channel")}>{labels.channel(ticket.channel)}</DetailRow>
+      <DetailRow label={t("ticket.created")}>{formatDateTime(ticket.created_at)}</DetailRow>
+      <DetailRow label={t("ticket.updated")}>{formatRelativeTime(ticket.updated_at)}</DetailRow>
+      {ticket.first_response_at && (
+        <DetailRow label={t("ticket.firstResponse")}>{formatDateTime(ticket.first_response_at)}</DetailRow>
+      )}
+      {ticket.resolved_at && <DetailRow label={t("ticket.resolved")}>{formatDateTime(ticket.resolved_at)}</DetailRow>}
+      {ticket.closed_at && <DetailRow label={t("ticket.closed")}>{formatDateTime(ticket.closed_at)}</DetailRow>}
+      {ticket.escalation_level > 0 && (
+        <DetailRow label={t("ticket.escalation")}>{t("ticket.escalationLevel", { n: ticket.escalation_level })}</DetailRow>
+      )}
+      {ticket.external_reference && <DetailRow label={t("ticket.reference")}>{ticket.external_reference}</DetailRow>}
       {ticket.tags && ticket.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {ticket.tags.map((tag) => (
@@ -63,6 +70,7 @@ export default function TicketDetailPage() {
   const ticketId = params.ticketId as string;
   useCommentStream(orgSlug, ticketId);
 
+  const { t } = useT();
   const { can, isStaff } = useServicePermissions(orgSlug);
   const { data: ticket, isLoading, isError } = useTicket(orgSlug, ticketId);
   const { data: comments = [], isLoading: commentsLoading } = useTicketComments(orgSlug, ticketId);
@@ -73,7 +81,7 @@ export default function TicketDetailPage() {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive">
         <AlertCircle className="h-5 w-5 shrink-0" />
-        <p className="text-sm font-medium">The ticket could not be loaded.</p>
+        <p className="text-sm font-medium">{t("ticket.loadFailed")}</p>
       </div>
     );
   }
@@ -94,17 +102,17 @@ export default function TicketDetailPage() {
   const onDelete = async () => {
     try {
       await deleteTicket.mutateAsync(ticket.id);
-      toast.success("Ticket deleted");
+      toast.success(t("ticket.deleted"));
       router.push(orgRoute(orgSlug, "/tickets"));
     } catch {
-      toast.error("The ticket could not be deleted.");
+      toast.error(t("ticket.deleteFailed"));
     }
   };
 
   return (
-    <div className="mx-auto max-w-[96rem]">
+    <div className="mx-auto max-w-384">
       <PageHeader
-        back={{ href: orgRoute(orgSlug, "/tickets"), label: "Tickets" }}
+        back={{ href: orgRoute(orgSlug, "/tickets"), label: t("tickets.title") }}
         title={ticket.subject}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
@@ -117,7 +125,7 @@ export default function TicketDetailPage() {
         actions={
           can(PERM.ticketsDelete) ? (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} className="text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4" /> Delete
+              <Trash2 className="h-4 w-4" /> {t("ticket.delete")}
             </Button>
           ) : undefined
         }
@@ -127,7 +135,7 @@ export default function TicketDetailPage() {
         <div className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <p className="text-sm font-semibold">
-            {ticket.sla_resolution_breached ? "The resolution target has been missed." : "The first response target has been missed."}
+            {ticket.sla_resolution_breached ? t("ticket.resolutionMissed") : t("ticket.responseMissed")}
           </p>
         </div>
       )}
@@ -160,9 +168,9 @@ export default function TicketDetailPage() {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Delete this ticket?"
-        description={`Ticket #${ticket.ticket_number} and its conversation will be removed.`}
-        confirmLabel="Delete ticket"
+        title={t("ticket.deleteTitle")}
+        description={t("ticket.deleteBody", { number: ticket.ticket_number })}
+        confirmLabel={t("ticket.deleteConfirm")}
         loading={deleteTicket.isPending}
         onConfirm={() => void onDelete()}
       />

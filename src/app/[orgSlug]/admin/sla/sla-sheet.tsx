@@ -8,7 +8,7 @@ import { FormSheet } from "@/components/common/form-sheet";
 import { Field, SwitchField } from "@/components/common/field";
 import { Button, Input } from "@/components/ui/base";
 import { useCreateSLAPolicy, useUpdateSLAPolicy } from "@/hooks/useSLA";
-import { PRIORITY_OPTIONS } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import type { TicketPriority } from "@/types/tickets";
 import type { SLAPolicy } from "@/types/sla";
 import { formatMinutes } from "./sla-columns";
@@ -58,6 +58,7 @@ export function SLASheet({
 }) {
   const [d, setD] = useState<Draft>(() => draftFrom(policy));
   const [error, setError] = useState<string | null>(null);
+  const labels = useTicketLabels();
   const create = useCreateSLAPolicy(orgSlug);
   const update = useUpdateSLAPolicy(orgSlug);
   const pending = create.isPending || update.isPending;
@@ -126,7 +127,7 @@ export function SLASheet({
           </Field>
           <Field label="Priority" required>
             <SearchableCombobox
-              options={PRIORITY_OPTIONS}
+              options={labels.priorityOptions}
               value={d.priority}
               onChange={(v) => v && set("priority", v as TicketPriority)}
               clearable={false}

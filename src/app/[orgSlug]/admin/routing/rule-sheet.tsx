@@ -8,7 +8,7 @@ import { FormSheet } from "@/components/common/form-sheet";
 import { Field, SwitchField } from "@/components/common/field";
 import { Button, Input } from "@/components/ui/base";
 import { useCreateRoutingRule, useUpdateRoutingRule } from "@/hooks/useRouting";
-import { PRIORITY_OPTIONS } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import type { ActionType, RoutingAction, RoutingCondition, RoutingRule } from "@/types/routing";
 import { ConditionRow } from "./condition-editor";
 import { ACTION_OPTIONS, blankCondition, conditionIsComplete } from "./routing-options";
@@ -42,9 +42,10 @@ export function RuleSheet({
   const create = useCreateRoutingRule(orgSlug);
   const update = useUpdateRoutingRule(orgSlug);
   const pending = create.isPending || update.isPending;
+  const labels = useTicketLabels();
 
   const actionValueOptions =
-    action.type === "assign_team" ? teamOptions : action.type === "assign_agent" ? agentOptions : PRIORITY_OPTIONS;
+    action.type === "assign_team" ? teamOptions : action.type === "assign_agent" ? agentOptions : labels.priorityOptions;
 
   const save = async () => {
     setError(null);

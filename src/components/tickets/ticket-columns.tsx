@@ -6,7 +6,8 @@ import type { DataTableColumn } from "@bengo-hub/shared-ui-lib/data-table";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
-import { CHANNEL_LABEL, PRIORITY_LABEL, STATUS_LABEL } from "@/lib/ticket-options";
+import type { TicketLabels } from "@/lib/ticket-options";
+import type { Translate } from "@/lib/i18n";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
 import type { Ticket } from "@/types/tickets";
 
@@ -15,79 +16,82 @@ export interface TicketColumnLookups {
   agentName: (id?: string) => string | undefined;
   /** Category id to name. */
   categoryName?: (id?: string) => string | undefined;
+  /** Status, priority and channel labels in the active language. */
+  labels: TicketLabels;
+  t: Translate;
 }
 
-export function buildTicketColumns({ agentName, categoryName }: TicketColumnLookups): DataTableColumn<Ticket>[] {
+export function buildTicketColumns({ agentName, categoryName, labels, t }: TicketColumnLookups): DataTableColumn<Ticket>[] {
   return [
     {
       key: "ticket_number",
-      header: "Number",
-      accessor: (t) => t.ticket_number,
-      render: (t) => <span className="font-mono text-xs font-semibold text-muted-foreground">#{t.ticket_number}</span>,
+      header: t("tickets.colNumber"),
+      accessor: (row) => row.ticket_number,
+      render: (row) => <span className="font-mono text-xs font-semibold text-muted-foreground">#{row.ticket_number}</span>,
       mobileHidden: true,
     },
     {
       key: "subject",
-      header: "Subject",
+      header: t("tickets.colSubject"),
       primary: true,
-      accessor: (t) => t.subject,
-      render: (t) => (
-        <div className="min-w-0 max-w-[28rem]">
-          <p className="truncate font-medium text-foreground">{t.subject}</p>
-          <p className="font-mono text-[11px] text-muted-foreground md:hidden">#{t.ticket_number}</p>
-          {categoryName?.(t.category_id) && (
-            <p className="hidden truncate text-xs text-muted-foreground md:block">{categoryName(t.category_id)}</p>
+      accessor: (row) => row.subject,
+      render: (row) => (
+        <div className="min-w-0 max-w-md">
+          <p className="truncate font-medium text-foreground">{row.subject}</p>
+          <p className="font-mono text-[11px] text-muted-foreground md:hidden">#{row.ticket_number}</p>
+          {categoryName?.(row.category_id) && (
+            <p className="hidden truncate text-xs text-muted-foreground md:block">{categoryName(row.category_id)}</p>
           )}
         </div>
       ),
     },
     {
       key: "status",
-      header: "Status",
+      header: t("tickets.colStatus"),
       mobileAction: true,
-      accessor: (t) => STATUS_LABEL[t.status] ?? t.status,
-      render: (t) => <TicketStatusBadge status={t.status} />,
+      accessor: (row) => labels.status(row.status),
+      render: (row) => <TicketStatusBadge status={row.status} />,
     },
     {
       key: "priority",
-      header: "Priority",
-      accessor: (t) => PRIORITY_LABEL[t.priority] ?? t.priority,
-      render: (t) => <PriorityBadge priority={t.priority} />,
+      header: t("tickets.colPriority"),
+      accessor: (row) => labels.priority(row.priority),
+      render: (row) => <PriorityBadge priority={row.priority} />,
     },
     {
       key: "sla",
-      header: "SLA",
+      header: t("tickets.colSla"),
       hideBelow: "lg",
       exportable: false,
-      accessor: (t) => (t.sla_resolution_breached || t.sla_response_breached ? "Breached" : ""),
-      render: (t) => <SLAStatusBadge ticket={t} />,
+      accessor: (row) => (row.sla_resolution_breached || row.sla_response_breached ? t("tickets.breached") : ""),
+      render: (row) => <SLAStatusBadge ticket={row} />,
     },
     {
       key: "channel",
-      header: "Channel",
+      header: t("tickets.colChannel"),
       hideBelow: "lg",
-      accessor: (t) => CHANNEL_LABEL[t.channel] ?? t.channel,
+      accessor: (row) => labels.channel(row.channel),
     },
     {
       key: "assignee",
-      header: "Assignee",
+      header: t("tickets.colAssignee"),
       hideBelow: "md",
-      accessor: (t) => agentName(t.assigned_agent_id) ?? "",
-      render: (t) =>
-        t.assigned_agent_id ? (
-          <span className="text-sm">{agentName(t.assigned_agent_id) ?? "Agent"}</span>
+      accessor: (row) => agentName(row.assigned_agent_id) ?? "",
+      render: (row) =>
+        row.assigned_agent_id ? (
+          <span className="text-sm">{agentName(row.assigned_agent_id) ?? t("tickets.agent")}</span>
         ) : (
-          <span className="text-sm text-muted-foreground">Unassigned</span>
+          <span className="text-sm text-muted-foreground">{t("tickets.unassigned")}</span>
         ),
     },
     {
       key: "updated_at",
-      header: "Updated",
+      header: t("tickets.colUpdated"),
       align: "right",
-      accessor: (t) => t.updated_at,
-      render: (t) => (
-        <span className="whitespace-nowrap text-xs text-muted-foreground" title={formatDateTime(t.updated_at)}>
-          {formatRelativeTime(t.updated_at)}
+      accessor: (row) => row.updated_at,
+      render: (row) => (
+        <span className="whitespace-nowrap text-xs text-muted-foreground" title={formatDateTime(row.updated_at)}>
+          {formatRelativeTime(row.updated_at)}
         </span>
       ),
     },

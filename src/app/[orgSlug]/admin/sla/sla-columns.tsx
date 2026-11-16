@@ -5,7 +5,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@bengo-hub/shared-ui-lib/data-table";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
-import { PRIORITY_LABEL } from "@/lib/ticket-options";
+import { currentTicketLabels } from "@/lib/ticket-options";
 import { cn } from "@/lib/utils";
 import type { SLAPolicy } from "@/types/sla";
 
@@ -55,7 +55,7 @@ export function buildSLAColumns({
     {
       key: "priority",
       header: "Priority",
-      accessor: (p) => PRIORITY_LABEL[p.priority] ?? p.priority,
+      accessor: (p) => currentTicketLabels().priority(p.priority),
       render: (p) => <PriorityBadge priority={p.priority} />,
     },
     {

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/hooks/useT";
 
 export type FormSheetSize = "sm" | "md" | "lg";
 
@@ -36,6 +37,7 @@ export function FormSheet({
   footer?: ReactNode;
   children: ReactNode;
 }) {
+  const { t } = useT();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -55,12 +57,12 @@ export function FormSheet({
               {description ? (
                 <Dialog.Description className="mt-0.5 text-sm text-muted-foreground">{description}</Dialog.Description>
               ) : (
-                <Dialog.Description className="sr-only">{typeof title === "string" ? title : "Form"}</Dialog.Description>
+                <Dialog.Description className="sr-only">{typeof title === "string" ? title : t("common.form")}</Dialog.Description>
               )}
             </div>
             <Dialog.Close
               className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-              aria-label="Close"
+              aria-label={t("common.close")}
             >
               <X className="h-4 w-4" />
             </Dialog.Close>

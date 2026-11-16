@@ -4,7 +4,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@bengo-hub/shared-ui-lib/data-table";
-import { CHANNEL_LABEL, PRIORITY_LABEL } from "@/lib/ticket-options";
+import { currentTicketLabels } from "@/lib/ticket-options";
 import { cn } from "@/lib/utils";
 import type { RoutingCondition, RoutingRule } from "@/types/routing";
 import { ACTION_LABEL, FIELD_LABEL, OPERATOR_LABEL } from "./routing-options";
@@ -16,8 +16,8 @@ export interface RoutingLookups {
 }
 
 function valueLabel(c: RoutingCondition, l: RoutingLookups, v: string): string {
-  if (c.field === "priority") return PRIORITY_LABEL[v as keyof typeof PRIORITY_LABEL] ?? v;
-  if (c.field === "channel") return CHANNEL_LABEL[v as keyof typeof CHANNEL_LABEL] ?? v;
+  if (c.field === "priority") return currentTicketLabels().priority(v);
+  if (c.field === "channel") return currentTicketLabels().channel(v);
   if (c.field === "category_id") return l.categoryName(v) ?? "Unknown category";
   return `"${v}"`;
 }
@@ -35,7 +35,7 @@ export function describeAction(r: RoutingRule, l: RoutingLookups): string {
       ? l.teamName(v)
       : r.action.type === "assign_agent"
         ? l.agentName(v)
-        : PRIORITY_LABEL[v as keyof typeof PRIORITY_LABEL];
+        : currentTicketLabels().priority(v);
   return `${ACTION_LABEL[r.action.type] ?? r.action.type}: ${target ?? "unknown"}`;
 }
 

@@ -11,15 +11,10 @@ import { useBranding } from "@/providers/branding-provider";
 import { useVisibleServices, AppSwitcherGrid, type ServiceKey } from "@bengo-hub/shared-ui-lib/app-switcher";
 import { AccountPanel } from "@bengo-hub/shared-ui-lib/account-panel";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
-import type { ServiceRole } from "@/lib/rbac/permissions";
+import { PERM, type ServiceRole } from "@/lib/rbac/permissions";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-
-const ROLE_LABELS: Record<ServiceRole, string> = {
-  ticketing_admin: "Admin",
-  supervisor: "Supervisor",
-  agent: "Agent",
-  customer: "Customer",
-};
+import { LanguageSwitch } from "@/components/common/language-switch";
+import { useT } from "@/hooks/useT";
 
 const SERVICE_URLS: Partial<Record<ServiceKey, string>> = {
   pos: process.env.NEXT_PUBLIC_POS_UI_URL ?? "https://pos.codevertexafrica.com",
@@ -35,9 +30,9 @@ const SERVICE_URLS: Partial<Record<ServiceKey, string>> = {
   afya: process.env.NEXT_PUBLIC_HOSPITAL_UI_URL ?? "https://afya.codevertexafrica.com",
 };
 
-function displayName(user: { fullName?: string; firstName?: string; email?: string } | null): string {
-  if (!user) return "Account";
-  return user.fullName ?? user.firstName ?? user.email?.split("@")[0] ?? "Account";
+function displayName(user: { fullName?: string; firstName?: string; email?: string } | null, fallback: string): string {
+  if (!user) return fallback;
+  return user.fullName ?? user.firstName ?? user.email?.split("@")[0] ?? fallback;
 }
 
 interface HeaderProps {
@@ -52,9 +47,11 @@ export function Header({ onMenuClick }: HeaderProps) {
   const redirectToSSO = useAuthStore((s) => s.redirectToSSO);
   const { getServiceTitle } = useBranding();
   const [profileOpen, setProfileOpen] = useState(false);
-  const name = displayName(user);
-  const { role: serviceRole } = useServicePermissions(orgSlug);
-  const role = serviceRole ? ROLE_LABELS[serviceRole] : "";
+  const { t } = useT();
+  const name = displayName(user, t("shell.account"));
+  const { role: serviceRole, can } = useServicePermissions(orgSlug);
+  const roleKey: ServiceRole = serviceRole ?? "agent";
+  const role = t(`role.${roleKey}`);
   // The App Store shows every real service to every authenticated user in the tenant. Each
   // destination service already enforces its own RBAC + subscription gating on arrival, so
   // pre-filtering the directory here just hid apps that were actually reachable.
@@ -67,18 +64,19 @@ export function Header({ onMenuClick }: HeaderProps) {
           type="button"
           onClick={onMenuClick}
           className="lg:hidden p-2 rounded-xl hover:bg-accent transition-colors"
-          aria-label="Open menu"
+          aria-label={t("shell.openMenu")}
         >
           <Menu className="h-5 w-5 text-muted-foreground" />
         </button>
-        <h1 className="text-lg font-black tracking-tight text-foreground uppercase truncate max-w-[150px] sm:max-w-none">
-          {getServiceTitle("Ticketing")}
+        <h1 className="text-lg font-black tracking-tight text-foreground uppercase truncate max-w-[110px] sm:max-w-none">
+          {getServiceTitle(t("common.appName"))}
         </h1>
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <LanguageSwitch />
         <ThemeToggle />
-        <button type="button" aria-label="Notifications" className="relative group p-2 rounded-xl hover:bg-accent transition-all">
+        <button type="button" aria-label={t("shell.notifications")} className="relative group hidden p-2 rounded-xl hover:bg-accent transition-all sm:block">
           <Bell className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
         </button>
 
@@ -98,7 +96,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               <div className="hidden md:block text-left mr-1">
                 <p className="text-xs font-black text-foreground truncate max-w-[120px]">{name}</p>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  {role || "Agent"}
+                  {role}
                 </p>
               </div>
               <ChevronDown
@@ -117,15 +115,17 @@ export function Header({ onMenuClick }: HeaderProps) {
             >
               <div className="flex flex-col gap-3">
                 <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  {role || "Agent"}
+                  {role}
                 </p>
-                <Link
-                  href={orgRoute(orgSlug, "/admin/settings")}
-                  onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
-                >
-                  <Settings className="h-4 w-4" /> Settings
-                </Link>
+                {can(PERM.settingsManage) && (
+                  <Link
+                    href={orgRoute(orgSlug, "/admin/settings")}
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
+                  >
+                    <Settings className="h-4 w-4" /> {t("common.settings")}
+                  </Link>
+                )}
                 <AppSwitcherGrid services={services} onNavigate={() => setProfileOpen(false)} />
               </div>
             </AccountPanel>
@@ -133,7 +133,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         ) : (
           <Button size="sm" onClick={() => void redirectToSSO(undefined, orgSlug)} className="rounded-xl px-4">
             <LogIn className="h-4 w-4" />
-            Sign in
+            {t("common.signIn")}
           </Button>
         )}
       </div>

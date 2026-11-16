@@ -11,6 +11,8 @@ import { PageHeader } from "@/components/common/page-header";
 import { KpiCard } from "@/components/common/kpi-card";
 import { buildTicketColumns } from "@/components/tickets/ticket-columns";
 import { cn, orgRoute } from "@/lib/utils";
+import { useT } from "@/hooks/useT";
+import { useTicketLabels } from "@/lib/ticket-options";
 import type { Ticket } from "@/types/tickets";
 
 type Queue = "active" | "pending" | "all";
@@ -31,6 +33,8 @@ export default function AgentInboxPage() {
   // "My tickets" filters by the agent record, not the SSO user id (tickets store the agent id).
   const { agentId } = useServicePermissions(orgSlug);
   const { agentName, categoryName } = useLookups(orgSlug);
+  const { t } = useT();
+  const labels = useTicketLabels();
   const [queue, setQueue] = useState<Queue>("active");
 
   const { data, isLoading, isError, refetch } = useTickets(
@@ -47,8 +51,8 @@ export default function AgentInboxPage() {
   const match = QUEUES.find((q) => q.key === queue)!.match;
   const rows = mine.filter(match);
   const columns = useMemo(
-    () => buildTicketColumns({ agentName, categoryName }).filter((c) => c.key !== "assignee"),
-    [agentName, categoryName],
+    () => buildTicketColumns({ agentName, categoryName, labels, t }).filter((c) => c.key !== "assignee"),
+    [agentName, categoryName, labels, t],
   );
 
   return (

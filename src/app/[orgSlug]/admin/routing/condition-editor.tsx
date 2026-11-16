@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { MultiSelectCombobox, SearchableCombobox, type ComboboxOption } from "@bengo-hub/shared-ui-lib/combobox";
 import { Input } from "@/components/ui/base";
-import { CHANNEL_OPTIONS, PRIORITY_OPTIONS } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import type { ConditionField, ConditionOperator, RoutingCondition } from "@/types/routing";
 import { FIELD_OPTIONS, OPERATOR_LABEL, blankCondition, operatorsFor } from "./routing-options";
 
@@ -21,11 +21,12 @@ export function ConditionRow({
   categoryOptions: ComboboxOption[];
   removable: boolean;
 }) {
+  const labels = useTicketLabels();
   const valueOptions: ComboboxOption[] | null =
     condition.field === "priority"
-      ? PRIORITY_OPTIONS
+      ? labels.priorityOptions
       : condition.field === "channel"
-        ? CHANNEL_OPTIONS
+        ? labels.channelOptions
         : condition.field === "category_id"
           ? categoryOptions
           : null;

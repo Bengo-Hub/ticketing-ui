@@ -1,9 +1,22 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { formatDate, formatDateTime } from "@bengo-hub/shared-ui-lib/format";
+import {
+  formatDate as sharedFormatDate,
+  formatDateTime as sharedFormatDateTime,
+  type DateFormatOptions,
+  type DateInput,
+} from "@bengo-hub/shared-ui-lib/format";
+import { DATE_LOCALE, getLocale, relativeTime } from "@/lib/i18n";
 
-// Dates come from the shared formatter, which shows them in the signed-in user's time zone.
-export { formatDate, formatDateTime };
+/** The shared date formatter in the signed-in user's time zone, worded in the chosen language. */
+export function formatDate(value: DateInput, timeZone?: string | null, options?: DateFormatOptions): string {
+  return sharedFormatDate(value, timeZone, { locale: DATE_LOCALE[getLocale()], ...options });
+}
+
+/** The shared date and time formatter, worded in the chosen language. */
+export function formatDateTime(value: DateInput, timeZone?: string | null, options?: DateFormatOptions): string {
+  return sharedFormatDateTime(value, timeZone, { locale: DATE_LOCALE[getLocale()], ...options });
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -14,15 +27,7 @@ export function orgRoute(orgSlug: string, path: string): string {
   return `/${orgSlug}${clean === "/" ? "" : clean}`;
 }
 
-/** "just now", "5m ago", "3h ago", "2d ago", then the date. */
+/** "just now", "5 min ago", "3 h ago", "2 days ago", then the date, in the chosen language. */
 export function formatRelativeTime(dateStr: string): string {
-  if (!dateStr) return "-";
-  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return formatDate(dateStr);
+  return relativeTime(dateStr, (v) => formatDate(v));
 }

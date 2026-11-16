@@ -6,8 +6,9 @@ import { Field } from "@/components/common/field";
 import { useAssignTicket, useUpdateTicket, useUpdateTicketStatus } from "@/hooks/useTickets";
 import { useLookups } from "@/hooks/useLookups";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { useT } from "@/hooks/useT";
 import { PERM } from "@/lib/rbac/permissions";
-import { PRIORITY_OPTIONS, STATUS_LABEL, statusOptionsFrom } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import type { Ticket, TicketPriority, TicketStatus } from "@/types/tickets";
 
 /**
@@ -15,6 +16,8 @@ import type { Ticket, TicketPriority, TicketStatus } from "@/types/tickets";
  * disabled; the status list offers only the moves the API accepts from the current status.
  */
 export function TicketProperties({ orgSlug, ticket }: { orgSlug: string; ticket: Ticket }) {
+  const { t } = useT();
+  const labels = useTicketLabels();
   const { can } = useServicePermissions(orgSlug);
   const { agentOptions, teamOptions, categoryOptions, agentName, teamName, categoryName } = useLookups(orgSlug);
   const updateTicket = useUpdateTicket(orgSlug, ticket.id);
@@ -37,49 +40,53 @@ export function TicketProperties({ orgSlug, ticket }: { orgSlug: string; ticket:
   const setStatus = (v: string) => {
     if (!v || v === ticket.status) return;
     const status = v as TicketStatus;
-    void run(updateStatus.mutateAsync({ id: ticket.id, status }), `Status set to ${STATUS_LABEL[status]}`, "The status could not be changed.");
+    void run(
+      updateStatus.mutateAsync({ id: ticket.id, status }),
+      t("ticket.statusSet", { status: labels.status(status) }),
+      t("ticket.statusFailed"),
+    );
   };
   const setPriority = (v: string) => {
     if (!v || v === ticket.priority) return;
-    void run(updateTicket.mutateAsync({ priority: v as TicketPriority }), "Priority updated", "The priority could not be changed.");
+    void run(updateTicket.mutateAsync({ priority: v as TicketPriority }), t("ticket.priorityUpdated"), t("ticket.priorityFailed"));
   };
   const setCategory = (v: string) => {
     if (!v || v === ticket.category_id) return;
-    void run(updateTicket.mutateAsync({ category_id: v }), "Category updated", "The category could not be changed.");
+    void run(updateTicket.mutateAsync({ category_id: v }), t("ticket.categoryUpdated"), t("ticket.categoryFailed"));
   };
   const setTeam = (v: string) => {
     if (!v || v === ticket.assigned_team_id) return;
-    void run(assign.mutateAsync({ id: ticket.id, teamId: v }), "Team assigned", "The team could not be assigned.");
+    void run(assign.mutateAsync({ id: ticket.id, teamId: v }), t("ticket.teamAssigned"), t("ticket.teamFailed"));
   };
   const setAgent = (v: string) => {
     if (!v || v === ticket.assigned_agent_id) return;
-    void run(assign.mutateAsync({ id: ticket.id, agentId: v }), "Agent assigned", "The agent could not be assigned.");
+    void run(assign.mutateAsync({ id: ticket.id, agentId: v }), t("ticket.agentAssigned"), t("ticket.agentFailed"));
   };
 
   return (
-    <section aria-label="Properties" className="space-y-3 rounded-xl border border-border bg-card p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Properties</h2>
-      <Field label="Status">
+    <section aria-label={t("ticket.properties")} className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("ticket.properties")}</h2>
+      <Field label={t("ticket.status")}>
         <SearchableCombobox
-          options={statusOptionsFrom(ticket.status)}
+          options={labels.statusOptionsFrom(ticket.status)}
           value={ticket.status}
           onChange={setStatus}
           clearable={false}
           disabled={!canChangeOwn || busy || ticket.status === "cancelled"}
-          searchPlaceholder="Status"
+          searchPlaceholder={t("ticket.status")}
         />
       </Field>
-      <Field label="Priority">
+      <Field label={t("ticket.priority")}>
         <SearchableCombobox
-          options={PRIORITY_OPTIONS}
+          options={labels.priorityOptions}
           value={ticket.priority}
           onChange={setPriority}
           clearable={false}
           disabled={!canChange || busy}
-          searchPlaceholder="Priority"
+          searchPlaceholder={t("ticket.priority")}
         />
       </Field>
-      <Field label="Category">
+      <Field label={t("ticket.category")}>
         <SearchableCombobox
           options={categoryOptions}
           value={ticket.category_id ?? ""}
@@ -87,12 +94,12 @@ export function TicketProperties({ orgSlug, ticket }: { orgSlug: string; ticket:
           onChange={setCategory}
           clearable={false}
           disabled={!canChangeOwn || busy}
-          placeholder="No category"
-          searchPlaceholder="Category"
-          emptyText="No categories"
+          placeholder={t("ticket.noCategory")}
+          searchPlaceholder={t("ticket.category")}
+          emptyText={t("ticket.noCategories")}
         />
       </Field>
-      <Field label="Team">
+      <Field label={t("ticket.team")}>
         <SearchableCombobox
           options={teamOptions}
           value={ticket.assigned_team_id ?? ""}
@@ -100,12 +107,12 @@ export function TicketProperties({ orgSlug, ticket }: { orgSlug: string; ticket:
           onChange={setTeam}
           clearable={false}
           disabled={!canChange || busy}
-          placeholder="No team"
-          searchPlaceholder="Team"
-          emptyText="No teams"
+          placeholder={t("ticket.noTeam")}
+          searchPlaceholder={t("ticket.team")}
+          emptyText={t("ticket.noTeams")}
         />
       </Field>
-      <Field label="Assignee">
+      <Field label={t("ticket.assignee")}>
         <SearchableCombobox
           options={agentOptions}
           value={ticket.assigned_agent_id ?? ""}
@@ -113,9 +120,9 @@ export function TicketProperties({ orgSlug, ticket }: { orgSlug: string; ticket:
           onChange={setAgent}
           clearable={false}
           disabled={!canChange || busy}
-          placeholder="Unassigned"
-          searchPlaceholder="Agent"
-          emptyText="No agents"
+          placeholder={t("ticket.unassigned")}
+          searchPlaceholder={t("ticket.agent")}
+          emptyText={t("ticket.noAgents")}
         />
       </Field>
     </section>

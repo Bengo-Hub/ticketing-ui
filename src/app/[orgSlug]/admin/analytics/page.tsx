@@ -23,9 +23,8 @@ import { PageHeader } from "@/components/common/page-header";
 import { KpiCard } from "@/components/common/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/base";
 import { splitPeriods, sumTrend } from "@/lib/analytics";
-import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/ticket-options";
+import { useTicketLabels } from "@/lib/ticket-options";
 import { cn } from "@/lib/utils";
-import type { TicketPriority, TicketStatus } from "@/types/tickets";
 
 const PERIOD_OPTIONS = [7, 30, 90];
 
@@ -74,6 +73,7 @@ export default function AnalyticsDashboardPage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
   const [days, setDays] = useState(30);
+  const labels = useTicketLabels();
 
   const { data, isLoading, isError } = useTicketAnalytics(orgSlug, days);
   // The trend for twice the period gives the previous period to compare against. The API buckets
@@ -85,7 +85,7 @@ export default function AnalyticsDashboardPage() {
   const statusData = data
     ? Object.entries(data.by_status).map(([k, v]) => ({
         key: k,
-        name: STATUS_LABEL[k as TicketStatus] ?? k,
+        name: labels.status(k),
         value: v,
         fill: STATUS_COLORS[k] ?? "#6b7280",
       }))
@@ -93,7 +93,7 @@ export default function AnalyticsDashboardPage() {
   const priorityData = data
     ? Object.entries(data.by_priority).map(([k, v]) => ({
         key: k,
-        name: PRIORITY_LABEL[k as TicketPriority] ?? k,
+        name: labels.priority(k),
         value: v,
         fill: PRIORITY_COLORS[k] ?? "#6b7280",
       }))

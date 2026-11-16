@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/base";
 import { cn } from "@/lib/utils";
+import { useT } from "@/hooks/useT";
 
 /** Confirmation for destructive or sensitive actions. Never use window.confirm. */
 export function ConfirmDialog({
@@ -11,7 +12,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel,
   onConfirm,
   variant = "danger",
   loading = false,
@@ -25,6 +26,7 @@ export function ConfirmDialog({
   variant?: "danger" | "warning";
   loading?: boolean;
 }) {
+  const { t } = useT();
   const Icon = variant === "danger" ? Trash2 : TriangleAlert;
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -45,11 +47,11 @@ export function ConfirmDialog({
           </Dialog.Description>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button variant={variant === "danger" ? "destructive" : "default"} onClick={onConfirm} disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {confirmLabel}
+              {confirmLabel ?? t("common.confirm")}
             </Button>
           </div>
         </Dialog.Content>

@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { KpiCard } from "@/components/common/kpi-card";
 import { splitPeriods, statusCounts } from "@/lib/analytics";
 import { visibleNav } from "@/lib/nav";
+import { useT } from "@/hooks/useT";
 import { orgRoute } from "@/lib/utils";
 
 const PERIOD = 7;
@@ -43,7 +44,8 @@ export default function AdminDashboardPage() {
   const available = agentRows.filter((a) => a.is_active && a.status === "available").length;
   const activeAgents = agentRows.filter((a) => a.is_active).length;
 
-  const admin = visibleNav(can).find((s) => s.title === "Admin")?.items.filter((i) => i.href !== "/admin") ?? [];
+  const { t } = useT();
+  const admin = visibleNav(can).find((s) => s.id === "admin")?.items.filter((i) => i.href !== "/admin") ?? [];
 
   return (
     <div className="space-y-6">
@@ -119,7 +121,7 @@ export default function AdminDashboardPage() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icon className="h-4 w-4" />
                   </span>
-                  <span className="flex-1 text-sm font-medium">{item.label}</span>
+                  <span className="flex-1 text-sm font-medium">{t(item.label)}</span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                 </Link>
               );
