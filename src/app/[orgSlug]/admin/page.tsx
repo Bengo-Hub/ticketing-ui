@@ -179,10 +179,10 @@ export default function AdminDashboardPage() {
                     key={agent.id}
                     className="flex items-center justify-between py-1.5 border-b border-border last:border-0"
                   >
-                    <span className="text-sm font-medium text-foreground">{agent.full_name}</span>
+                    <span className="text-sm font-medium text-foreground">{agent.display_name}</span>
                     <span
                       className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        agent.status === "active"
+                        agent.status === "available"
                           ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                           : agent.status === "busy"
                           ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"

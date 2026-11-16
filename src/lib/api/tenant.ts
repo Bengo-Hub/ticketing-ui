@@ -1,68 +1,19 @@
-import { serviceBrandingMap, type ServiceBrandingEntry } from "@bengo-hub/shared-ui-lib/branding";
+import {
+  fetchTenantBySlug as sharedFetchTenantBySlug,
+  type TenantBrand,
+} from "@bengo-hub/shared-ui-lib/tenant";
 
-export const AUTH_API_URL =
+export type { TenantBrand };
+
+/** auth-api base URL. Tenant lookups by slug are public on auth-api. */
+export const AUTH_API_URL = (
   process.env.NEXT_PUBLIC_AUTH_API_URL ||
   process.env.NEXT_PUBLIC_SSO_URL ||
-  "https://sso.codevertexafrica.com";
+  "https://sso.codevertexafrica.com"
+).replace(/\/+$/, "");
 
-export interface TenantBrand {
-  id: string;
-  name: string;
-  slug: string;
-  logoUrl: string | null;
-  primaryColor: string | null;
-  secondaryColor: string | null;
-  orgName: string;
-  /** The tenant's own app names (metadata service_branding, set in Accounts > Branding). */
-  serviceBranding?: Record<string, ServiceBrandingEntry>;
-}
-
-interface TenantBrandMetadata {
-  logo_url?: string;
-  logoUrl?: string;
-  primary_color?: string;
-  primaryColor?: string;
-  secondary_color?: string;
-  secondaryColor?: string;
-  org_name?: string;
-  orgName?: string;
-}
-
-interface TenantResponse {
-  id: string;
-  name: string;
-  slug: string;
-  status?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export function parseBrandFromTenant(t: TenantResponse): TenantBrand {
-  const meta = (t.metadata || {}) as TenantBrandMetadata;
-  const logoUrl = meta.logo_url ?? meta.logoUrl ?? null;
-  const primaryColor = meta.primary_color ?? meta.primaryColor ?? null;
-  const secondaryColor = meta.secondary_color ?? meta.secondaryColor ?? null;
-  const orgName = meta.org_name ?? meta.orgName ?? t.name ?? "";
-  return {
-    id: t.id,
-    name: t.name ?? "",
-    slug: t.slug ?? "",
-    logoUrl: typeof logoUrl === "string" ? logoUrl : null,
-    primaryColor: typeof primaryColor === "string" ? primaryColor : null,
-    secondaryColor: typeof secondaryColor === "string" ? secondaryColor : null,
-    orgName: typeof orgName === "string" ? orgName : t.name ?? "",
-    serviceBranding: serviceBrandingMap(t.metadata),
-  };
-}
-
-export async function fetchTenantBySlug(slug: string): Promise<TenantBrand | null> {
-  if (!slug) return null;
-  const url = `${AUTH_API_URL}/api/v1/tenants/by-slug/${encodeURIComponent(slug)}`;
-  try {
-    const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
-    if (!res.ok) return null;
-    const data = (await res.json()) as TenantResponse;
-    return parseBrandFromTenant(data);
-  } catch {
-    return null;
-  }
+/** Loads a tenant's brand through the shared cached lookup. Returns null when the slug is unknown. */
+export function fetchTenantBySlug(slug: string): Promise<TenantBrand | null> {
+  if (!slug) return Promise.resolve(null);
+  return sharedFetchTenantBySlug(slug, AUTH_API_URL);
 }

@@ -6,6 +6,8 @@ import type {
   CreateTeamData,
   Team,
   TeamListResponse,
+  UpdateAgentData,
+  UpdateTeamData,
 } from "@/types/agents";
 
 export async function getAgents(tenantSlug: string): Promise<AgentListResponse> {
@@ -26,10 +28,9 @@ export async function createAgent(tenantSlug: string, payload: CreateAgentData):
 export async function updateAgent(
   tenantSlug: string,
   id: string,
-  payload: Partial<CreateAgentData>,
-): Promise<Agent> {
-  const { data } = await api.patch<Agent>(`api/v1/${tenantSlug}/agents/${id}`, payload);
-  return data;
+  payload: UpdateAgentData,
+): Promise<void> {
+  await api.put(`api/v1/${tenantSlug}/agents/${id}`, payload);
 }
 
 export async function deleteAgent(tenantSlug: string, id: string): Promise<void> {
@@ -54,10 +55,9 @@ export async function createTeam(tenantSlug: string, payload: CreateTeamData): P
 export async function updateTeam(
   tenantSlug: string,
   id: string,
-  payload: Partial<CreateTeamData>,
-): Promise<Team> {
-  const { data } = await api.patch<Team>(`api/v1/${tenantSlug}/teams/${id}`, payload);
-  return data;
+  payload: UpdateTeamData,
+): Promise<void> {
+  await api.put(`api/v1/${tenantSlug}/teams/${id}`, payload);
 }
 
 export async function deleteTeam(tenantSlug: string, id: string): Promise<void> {

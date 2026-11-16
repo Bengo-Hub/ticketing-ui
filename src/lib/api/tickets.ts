@@ -34,31 +34,28 @@ export async function updateTicket(
   tenantSlug: string,
   id: string,
   payload: UpdateTicketData,
-): Promise<Ticket> {
-  const { data } = await api.patch<Ticket>(`api/v1/${tenantSlug}/tickets/${id}`, payload);
-  return data;
+): Promise<void> {
+  await api.put(`api/v1/${tenantSlug}/tickets/${id}`, payload);
 }
 
 export async function updateTicketStatus(
   tenantSlug: string,
   id: string,
   status: TicketStatus,
-): Promise<Ticket> {
-  const { data } = await api.patch<Ticket>(`api/v1/${tenantSlug}/tickets/${id}/status`, {
-    status,
-  });
-  return data;
+): Promise<void> {
+  await api.put(`api/v1/${tenantSlug}/tickets/${id}/status`, { status });
 }
 
+/** Assigns to an agent, a team, or both (the API takes either). */
 export async function assignTicket(
   tenantSlug: string,
   id: string,
-  agentId: string,
-): Promise<Ticket> {
-  const { data } = await api.patch<Ticket>(`api/v1/${tenantSlug}/tickets/${id}/assign`, {
-    agent_id: agentId,
+  target: { agentId?: string; teamId?: string },
+): Promise<void> {
+  await api.put(`api/v1/${tenantSlug}/tickets/${id}/assign`, {
+    agent_id: target.agentId,
+    team_id: target.teamId,
   });
-  return data;
 }
 
 export async function addComment(

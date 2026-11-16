@@ -11,7 +11,7 @@ import {
   updateAgent,
   updateTeam,
 } from "@/lib/api/agents";
-import type { CreateAgentData, CreateTeamData } from "@/types/agents";
+import type { CreateAgentData, CreateTeamData, UpdateAgentData, UpdateTeamData } from "@/types/agents";
 
 export function useAgents(tenantSlug: string) {
   return useQuery({
@@ -44,7 +44,7 @@ export function useCreateAgent(tenantSlug: string) {
 export function useUpdateAgent(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateAgentData> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateAgentData }) =>
       updateAgent(tenantSlug, id, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["agents", tenantSlug] });
@@ -75,7 +75,7 @@ export function useCreateTeam(tenantSlug: string) {
 export function useUpdateTeam(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTeamData> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateTeamData }) =>
       updateTeam(tenantSlug, id, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["teams", tenantSlug] });

@@ -1,132 +1,60 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { NORMALISED_BASE_URL } from "@/lib/api-client";
+import { openStream, type StreamMessage } from "@/lib/sse/stream";
+import { useAuthStore } from "@/store/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-interface SSEEvent {
-  type: string;
-  payload: Record<string, unknown>;
+/** Ticket id carried by a stream event (`{"type": ..., "payload": {"ticket_id": ...}}`). */
+function ticketIdOf(msg: StreamMessage): string | undefined {
+  try {
+    const parsed = JSON.parse(msg.data) as { payload?: { ticket_id?: string } };
+    return parsed.payload?.ticket_id;
+  } catch {
+    return undefined;
+  }
 }
 
-/**
- * Subscribes to the tenant-scoped SSE ticket stream and invalidates
- * relevant TanStack Query caches on each event so pages refresh live.
- */
-export function useTicketStream(orgSlug: string, token: string | null) {
-  const qc = useQueryClient();
-  const esRef = useRef<EventSource | null>(null);
-  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!token || !orgSlug) return;
-
-    let stopped = false;
-
-    const connect = () => {
-      if (stopped) return;
-
-      const url = `${API_URL}/api/v1/${orgSlug}/tickets/stream`;
-      // EventSource doesn't support custom headers natively;
-      // pass token as query param (API must accept ?token= for SSE endpoints)
-      const es = new EventSource(`${url}?token=${encodeURIComponent(token)}`);
-      esRef.current = es;
-
-      es.addEventListener("ticket.created", () => {
-        void qc.invalidateQueries({ queryKey: ["tickets", orgSlug] });
-      });
-
-      es.addEventListener("ticket.updated", (e) => {
-        try {
-          const evt = JSON.parse(e.data) as SSEEvent;
-          const ticketId = evt.payload?.ticket_id as string | undefined;
-          void qc.invalidateQueries({ queryKey: ["tickets", orgSlug] });
-          if (ticketId) {
-            void qc.invalidateQueries({ queryKey: ["ticket", orgSlug, ticketId] });
-          }
-        } catch {
-          void qc.invalidateQueries({ queryKey: ["tickets", orgSlug] });
-        }
-      });
-
-      es.addEventListener("comment.created", (e) => {
-        try {
-          const evt = JSON.parse(e.data) as SSEEvent;
-          const ticketId = evt.payload?.ticket_id as string | undefined;
-          if (ticketId) {
-            void qc.invalidateQueries({ queryKey: ["comments", orgSlug, ticketId] });
-          }
-        } catch {
-          // ignore malformed events
-        }
-      });
-
-      es.onerror = () => {
-        es.close();
-        esRef.current = null;
-        // Exponential back-off capped at 30s
-        if (!stopped) {
-          retryRef.current = setTimeout(connect, 5000);
-        }
-      };
-    };
-
-    connect();
-
-    return () => {
-      stopped = true;
-      if (retryRef.current) clearTimeout(retryRef.current);
-      esRef.current?.close();
-      esRef.current = null;
-    };
-  }, [orgSlug, token, qc]);
+/** Invalidates the queries an event touches. Keys must match useTickets.ts exactly. */
+function applyEvent(qc: QueryClient, slug: string, msg: StreamMessage) {
+  const id = ticketIdOf(msg);
+  switch (msg.event) {
+    case "ticket.created":
+      void qc.invalidateQueries({ queryKey: ["tickets"] });
+      void qc.invalidateQueries({ queryKey: ["ticket-stats", slug] });
+      break;
+    case "ticket.updated":
+      void qc.invalidateQueries({ queryKey: ["tickets"] });
+      void qc.invalidateQueries({ queryKey: ["ticket-stats", slug] });
+      if (id) void qc.invalidateQueries({ queryKey: ["ticket", slug, id] });
+      break;
+    case "comment.created":
+      if (id) void qc.invalidateQueries({ queryKey: ["ticket-comments", slug, id] });
+      break;
+  }
 }
 
-/**
- * Subscribes to a single ticket's comment stream.
- */
-export function useCommentStream(orgSlug: string, ticketId: string, token: string | null) {
+function useStream(path: string | null, slug: string) {
   const qc = useQueryClient();
-  const esRef = useRef<EventSource | null>(null);
-  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const signedIn = useAuthStore((s) => !!s.session?.accessToken);
 
   useEffect(() => {
-    if (!token || !orgSlug || !ticketId) return;
+    if (!path || !slug || !signedIn) return;
+    return openStream(`${NORMALISED_BASE_URL}${path}`, {
+      onMessage: (msg) => applyEvent(qc, slug, msg),
+      onReconnect: () => void qc.invalidateQueries({ refetchType: "active" }),
+    });
+    // Reconnect only when the path or sign-in state changes; each attempt reads the latest token.
+  }, [path, slug, signedIn, qc]);
+}
 
-    let stopped = false;
+/** Live updates for the tenant's ticket lists and counters. */
+export function useTicketStream(slug: string) {
+  useStream(slug ? `api/v1/${slug}/tickets/stream` : null, slug);
+}
 
-    const connect = () => {
-      if (stopped) return;
-
-      const url = `${API_URL}/api/v1/${orgSlug}/tickets/${ticketId}/stream`;
-      const es = new EventSource(`${url}?token=${encodeURIComponent(token)}`);
-      esRef.current = es;
-
-      es.addEventListener("comment.created", () => {
-        void qc.invalidateQueries({ queryKey: ["comments", orgSlug, ticketId] });
-      });
-
-      es.addEventListener("ticket.updated", () => {
-        void qc.invalidateQueries({ queryKey: ["ticket", orgSlug, ticketId] });
-      });
-
-      es.onerror = () => {
-        es.close();
-        esRef.current = null;
-        if (!stopped) {
-          retryRef.current = setTimeout(connect, 5000);
-        }
-      };
-    };
-
-    connect();
-
-    return () => {
-      stopped = true;
-      if (retryRef.current) clearTimeout(retryRef.current);
-      esRef.current?.close();
-      esRef.current = null;
-    };
-  }, [orgSlug, ticketId, token, qc]);
+/** Live updates for one ticket's conversation. */
+export function useCommentStream(slug: string, ticketId: string) {
+  useStream(slug && ticketId ? `api/v1/${slug}/tickets/${ticketId}/stream` : null, slug);
 }

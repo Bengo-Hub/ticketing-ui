@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTickets, useTicketStats } from "@/hooks/useTickets";
-import { useAuthStore } from "@/store/auth";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
@@ -19,16 +19,17 @@ export default function AgentInboxPage() {
   const params = useParams();
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
-  const user = useAuthStore((s) => s.user);
+  // "My tickets" filters by the agent record, not the SSO user id (tickets store the agent id).
+  const { agentId } = useServicePermissions(orgSlug);
 
   const { data: statsData } = useTicketStats(orgSlug);
 
   const { data: assignedData, isLoading } = useTickets({
     tenantSlug: orgSlug,
-    assigned_agent_id: user?.id,
+    agentId: agentId ?? undefined,
     page: 1,
-    page_size: 50,
-  });
+    limit: 50,
+  }, !!agentId);
 
   const myTickets = assignedData?.data ?? [];
   const openTickets = myTickets.filter((t) => t.status === "open" || t.status === "in_progress");

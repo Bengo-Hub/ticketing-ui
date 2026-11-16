@@ -8,6 +8,8 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { PWAUpdateBanner } from "@/components/pwa-update-banner";
 import { PWARegistration } from "@/components/pwa-registration";
+import { RouteGuard } from "@/components/auth/RouteGuard";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 function ManifestInjector() {
   const params = useParams();
@@ -41,10 +43,12 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <div className="flex flex-1 overflow-hidden">
             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-              {children}
+            {/* Bottom padding keeps content clear of the phone bottom bar and the iOS home indicator. */}
+            <main className="flex-1 overflow-y-auto p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6">
+              <RouteGuard>{children}</RouteGuard>
             </main>
           </div>
+          <MobileBottomNav onOpenMenu={() => setSidebarOpen(true)} />
         </div>
       </BrandingProvider>
     </AuthProvider>

@@ -11,14 +11,15 @@ import { toast } from "sonner";
 export default function KBArticlePage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
-  const articleId = params.articleId as string;
+  const slug = params.slug as string;
 
-  const { data: article, isLoading, isError } = useArticle(orgSlug, articleId);
+  const { data: article, isLoading, isError } = useArticle(orgSlug, slug);
   const vote = useVoteArticle(orgSlug);
 
   const handleVote = async (helpful: boolean) => {
+    if (!article) return;
     try {
-      await vote.mutateAsync({ id: articleId, helpful });
+      await vote.mutateAsync({ id: article.id, slug, helpful });
       toast.success(helpful ? "Marked as helpful" : "Feedback recorded");
     } catch {
       toast.error("Failed to record feedback");

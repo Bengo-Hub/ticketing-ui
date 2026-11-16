@@ -2,53 +2,26 @@
 
 import { cn, orgRoute } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
-import {
-  BarChart3,
-  BookOpen,
-  ClipboardList,
-  HeadphonesIcon,
-  LayoutDashboard,
-  LogOut,
-  PlusCircle,
-  Settings,
-  Shield,
-  Users,
-  X,
-} from "lucide-react";
+import { HeadphonesIcon, LogOut, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useBranding } from "@/providers/branding-provider";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { visibleNav, type NavItem } from "@/lib/nav";
 
 interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
 }
 
-const mainNav = [
-  { id: "tickets", label: "All Tickets", href: "/tickets", icon: ClipboardList },
-  { id: "new-ticket", label: "Create Ticket", href: "/tickets/new", icon: PlusCircle },
-  { id: "kb", label: "Knowledge Base", href: "/kb", icon: BookOpen },
-];
-
-const agentNav = [
-  { id: "agent-inbox", label: "My Inbox", href: "/agent", icon: HeadphonesIcon },
-];
-
-const adminNav = [
-  { id: "admin", label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { id: "admin-teams", label: "Teams", href: "/admin/teams", icon: Users },
-  { id: "admin-agents", label: "Agents", href: "/admin/agents", icon: Shield },
-  { id: "admin-analytics", label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { id: "admin-kb", label: "Knowledge Base", href: "/admin/kb", icon: BookOpen },
-  { id: "admin-settings", label: "Settings", href: "/admin/settings", icon: Settings },
-];
-
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const params = useParams();
-  const orgSlug = (params.orgSlug as string) || "codevertex";
+  const orgSlug = (params.orgSlug as string) || "";
   const logout = useAuthStore((s) => s.logout);
   const { tenant } = useBranding();
+  const { can } = useServicePermissions(orgSlug);
+  const sections = visibleNav(can);
 
   const isActive = (href: string) => {
     const full = orgRoute(orgSlug, href);
@@ -61,7 +34,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     items,
   }: {
     title: string;
-    items: typeof mainNav;
+    items: NavItem[];
   }) => (
     <div className="mt-6">
       <div className="px-6 pb-2">
@@ -132,9 +105,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <NavSection title="Tickets" items={mainNav} />
-        <NavSection title="Agent" items={agentNav} />
-        <NavSection title="Admin" items={adminNav} />
+        {sections.map((s) => (
+          <NavSection key={s.title} title={s.title} items={s.items} />
+        ))}
       </div>
 
       {/* Footer */}

@@ -54,7 +54,7 @@ export default function AdminKBPage() {
     search: search || undefined,
     status: status || undefined,
     page,
-    page_size: 20,
+    limit: 20,
   });
 
   const deleteArticle = useDeleteArticle(orgSlug);
@@ -173,7 +173,7 @@ export default function AdminKBPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => router.push(orgRoute(orgSlug, `/kb/${article.id}`))}
+                    onClick={() => router.push(orgRoute(orgSlug, `/kb/${article.slug}`))}
                     title="Preview"
                   >
                     <Eye className="h-3.5 w-3.5" />

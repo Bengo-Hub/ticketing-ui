@@ -1,3 +1,5 @@
+import type { PageResponse } from "@/types/tickets";
+
 export type ArticleStatus = "draft" | "published" | "archived";
 
 export interface KBArticle {
@@ -20,17 +22,12 @@ export interface KBArticle {
   updated_at: string;
 }
 
-export interface KBListResponse {
-  data: KBArticle[];
-  total: number;
-  page: number;
-  page_size: number;
-}
+export type KBListResponse = PageResponse<KBArticle>;
 
 export interface KBListParams {
   tenantSlug: string;
   page?: number;
-  page_size?: number;
+  limit?: number;
   search?: string;
   category?: string;
   status?: ArticleStatus;

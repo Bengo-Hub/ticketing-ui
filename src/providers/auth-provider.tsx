@@ -6,11 +6,15 @@ import { useEffect, useState, type PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
+import { toast } from "sonner";
 import { useMe } from "@/hooks/useMe";
-import { setOn401 } from "@/lib/api-client";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { isSubscription403, setOn401, setOnSubscription403 } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth";
 import { AUTH_STORAGE_KEY, reloadSessionFromStorage } from "@/lib/auth/token-refresh";
 import { watchSessionAcrossTabs } from "@bengo-hub/shared-ui-lib/auth";
+
+const SUBSCRIPTIONS_UI_URL = process.env.NEXT_PUBLIC_SUBSCRIPTIONS_UI_URL ?? "https://pricing.codevertexafrica.com";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -31,11 +35,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const session = useAuthStore((s) => s.session);
   const status = useAuthStore((s) => s.status);
   const redirectToSSO = useAuthStore((s) => s.redirectToSSO);
-  const { isError, error, isLoading: meLoading } = useMe(!!session);
+  const { isLoading: meLoading } = useMe(!!session);
 
   const isAuthCallback = pathname?.includes("/auth/callback");
   const isUnauthorizedPage = pathname?.endsWith("/unauthorized");
   const orgSlug = pathname?.split("/")[1];
+  // Service profile (ticketing role and permissions). A permission 403 here means the person has
+  // no access to this tenant's desk; a subscription 403 never redirects (shared-docs gating guide).
+  const { isError, error } = useServicePermissions(orgSlug ?? "");
 
   useEffect(() => {
     if (status === "loading" || isAuthCallback) return;
@@ -46,8 +53,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!session || isUnauthorizedPage || meLoading) return;
-    const statusCode = (error as { response?: { status?: number } })?.response?.status;
-    if (isError && statusCode === 403) {
+    const res = (error as { response?: { status?: number; data?: unknown } })?.response;
+    if (isError && res?.status === 403 && !isSubscription403(res.data)) {
       const base = pathname?.split("/").slice(0, 2).join("/") || "";
       router.replace(base ? `${base}/unauthorized` : "/unauthorized");
     }
@@ -97,6 +104,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
     return () => setOn401(null);
   }, [queryClient, logout]);
+
+  useEffect(() => {
+    setOnSubscription403((data) => {
+      toast.error(data.error || "Your subscription is not active, so changes cannot be saved.", {
+        id: "subscription-403",
+        action: { label: "View plans", onClick: () => window.open(SUBSCRIPTIONS_UI_URL, "_blank", "noopener") },
+      });
+    });
+    return () => setOnSubscription403(null);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

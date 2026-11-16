@@ -27,9 +27,8 @@ export default function KBPage() {
     tenantSlug: orgSlug,
     search: search || undefined,
     category: category || undefined,
-    status: "published",
     page,
-    page_size: 20,
+    limit: 20,
   });
 
   const articles = data?.data ?? [];
@@ -120,7 +119,7 @@ export default function KBPage() {
               <button
                 key={article.id}
                 type="button"
-                onClick={() => router.push(orgRoute(orgSlug, `/kb/${article.id}`))}
+                onClick={() => router.push(orgRoute(orgSlug, `/kb/${article.slug}`))}
                 className="w-full text-left p-4 hover:bg-accent transition-colors group"
               >
                 <div className="flex items-start gap-4">

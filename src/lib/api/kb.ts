@@ -19,8 +19,11 @@ export async function getArticles(params: KBListParams): Promise<KBListResponse>
   return data;
 }
 
-export async function getArticle(tenantSlug: string, id: string): Promise<KBArticle> {
-  const { data } = await api.get<KBArticle>(`api/v1/${tenantSlug}/kb/articles/${id}`);
+/** Public article by its slug (GET /{tenant}/kb/articles/{slug}). */
+export async function getArticleBySlug(tenantSlug: string, slug: string): Promise<KBArticle> {
+  const { data } = await api.get<KBArticle>(
+    `api/v1/${tenantSlug}/kb/articles/${encodeURIComponent(slug)}`,
+  );
   return data;
 }
 
@@ -78,7 +81,7 @@ export async function searchPublicArticles(
 ): Promise<KBArticle[]> {
   const { data } = await api.get<KBListResponse>(
     `api/v1/${tenantSlug}/kb/articles`,
-    { params: { search, page_size: limit, status: "published" } },
+    { params: { search, limit } },
   );
   return data.data ?? [];
 }

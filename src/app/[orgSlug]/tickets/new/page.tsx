@@ -153,7 +153,7 @@ export default function NewTicketPage() {
                 {kbSuggestions.map((article) => (
                   <Link
                     key={article.id}
-                    href={orgRoute(orgSlug, `/kb/${article.id}`)}
+                    href={orgRoute(orgSlug, `/kb/${article.slug}`)}
                     target="_blank"
                     className="flex items-center justify-between gap-3 rounded-lg bg-background border border-border px-3 py-2 hover:border-primary/50 hover:bg-primary/5 transition-colors group"
                   >

@@ -21,7 +21,7 @@ import Link from "next/link";
 import { orgRoute } from "@/lib/utils";
 
 const schema = z.object({
-  full_name: z.string().min(2, "Name required"),
+  display_name: z.string().min(2, "Name required"),
   email: z.string().email("Valid email required"),
   user_id: z.string().min(1, "User ID required"),
   role: z.enum(["agent", "supervisor", "admin"]),
@@ -49,7 +49,7 @@ export default function AgentsPage() {
   const onSubmit = async (data: FormData) => {
     try {
       await createAgent.mutateAsync({
-        full_name: data.full_name,
+        display_name: data.display_name,
         email: data.email,
         user_id: data.user_id,
         role: data.role,
@@ -79,9 +79,10 @@ export default function AgentsPage() {
   };
 
   const statusColors: Record<string, string> = {
-    active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    inactive: "bg-gray-100 text-gray-500",
+    available: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     busy: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    away: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    offline: "bg-gray-100 text-gray-500",
   };
 
   return (
@@ -119,10 +120,10 @@ export default function AgentsPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name *</Label>
-                  <Input id="full_name" placeholder="John Doe" {...register("full_name")} />
-                  {errors.full_name && (
-                    <p className="text-xs text-destructive">{errors.full_name.message}</p>
+                  <Label htmlFor="display_name">Full Name *</Label>
+                  <Input id="display_name" placeholder="John Doe" {...register("display_name")} />
+                  {errors.display_name && (
+                    <p className="text-xs text-destructive">{errors.display_name.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -193,10 +194,10 @@ export default function AgentsPage() {
                 <div key={agent.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                      {agent.full_name[0]?.toUpperCase()}
+                      {agent.display_name[0]?.toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">{agent.full_name}</p>
+                      <p className="font-semibold text-foreground">{agent.display_name}</p>
                       <p className="text-xs text-muted-foreground">{agent.email}</p>
                     </div>
                   </div>
@@ -211,7 +212,7 @@ export default function AgentsPage() {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() => void handleDelete(agent.id, agent.full_name)}
+                      onClick={() => void handleDelete(agent.id, agent.display_name)}
                       title="Remove agent"
                     >
                       <Trash2 className="h-4 w-4" />

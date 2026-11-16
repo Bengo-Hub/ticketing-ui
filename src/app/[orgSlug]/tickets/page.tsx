@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTickets } from "@/hooks/useTickets";
 import { useTicketStream } from "@/hooks/useSSE";
-import { useAuthStore } from "@/store/auth";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import {
@@ -44,8 +43,7 @@ export default function TicketsPage() {
   const params = useParams();
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
-  const token = useAuthStore((s) => s.session?.accessToken ?? null);
-  useTicketStream(orgSlug, token);
+  useTicketStream(orgSlug);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<TicketStatus | "">("");
@@ -58,7 +56,7 @@ export default function TicketsPage() {
     status: status || undefined,
     priority: priority || undefined,
     page,
-    page_size: 20,
+    limit: 20,
   });
 
   const tickets = data?.data ?? [];

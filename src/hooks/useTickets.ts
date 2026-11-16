@@ -22,11 +22,11 @@ import type {
   UpdateTicketData,
 } from "@/types/tickets";
 
-export function useTickets(params: TicketListParams) {
+export function useTickets(params: TicketListParams, enabled = true) {
   return useQuery({
     queryKey: ["tickets", params],
     queryFn: () => getTickets(params),
-    enabled: !!params.tenantSlug,
+    enabled: enabled && !!params.tenantSlug,
     staleTime: 60_000,
   });
 }
@@ -105,8 +105,8 @@ export function useUpdateTicketStatus(tenantSlug: string) {
 export function useAssignTicket(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, agentId }: { id: string; agentId: string }) =>
-      assignTicket(tenantSlug, id, agentId),
+    mutationFn: ({ id, agentId, teamId }: { id: string; agentId?: string; teamId?: string }) =>
+      assignTicket(tenantSlug, id, { agentId, teamId }),
     onSuccess: (_data, variables) => {
       void qc.invalidateQueries({ queryKey: ["ticket", tenantSlug, variables.id] });
       void qc.invalidateQueries({ queryKey: ["tickets"] });

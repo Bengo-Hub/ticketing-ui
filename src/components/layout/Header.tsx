@@ -10,6 +10,15 @@ import { useParams } from "next/navigation";
 import { useBranding } from "@/providers/branding-provider";
 import { useVisibleServices, AppSwitcherGrid, type ServiceKey } from "@bengo-hub/shared-ui-lib/app-switcher";
 import { AccountPanel } from "@bengo-hub/shared-ui-lib/account-panel";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import type { ServiceRole } from "@/lib/rbac/permissions";
+
+const ROLE_LABELS: Record<ServiceRole, string> = {
+  ticketing_admin: "Admin",
+  supervisor: "Supervisor",
+  agent: "Agent",
+  customer: "Customer",
+};
 
 const SERVICE_URLS: Partial<Record<ServiceKey, string>> = {
   pos: process.env.NEXT_PUBLIC_POS_UI_URL ?? "https://pos.codevertexafrica.com",
@@ -36,14 +45,15 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const params = useParams();
-  const orgSlug = (params.orgSlug as string) || "codevertex";
+  const orgSlug = (params.orgSlug as string) || "";
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const redirectToSSO = useAuthStore((s) => s.redirectToSSO);
   const { getServiceTitle } = useBranding();
   const [profileOpen, setProfileOpen] = useState(false);
   const name = displayName(user);
-  const role = (user as { roles?: string[] } | null)?.roles?.[0] || (user as { role?: string } | null)?.role;
+  const { role: serviceRole } = useServicePermissions(orgSlug);
+  const role = serviceRole ? ROLE_LABELS[serviceRole] : "";
   // The App Store shows every real service to every authenticated user in the tenant — each
   // destination service already enforces its own RBAC + subscription gating on arrival, so
   // pre-filtering the directory here just hid apps that were actually reachable.

@@ -4,7 +4,7 @@ import {
   deleteArticle,
   getAdminArticle,
   getAdminArticles,
-  getArticle,
+  getArticleBySlug,
   getArticles,
   updateArticle,
   voteArticle,
@@ -19,11 +19,11 @@ export function useArticles(params: KBListParams) {
   });
 }
 
-export function useArticle(tenantSlug: string, id: string) {
+export function useArticle(tenantSlug: string, slug: string) {
   return useQuery({
-    queryKey: ["kb", "article", tenantSlug, id],
-    queryFn: () => getArticle(tenantSlug, id),
-    enabled: !!id,
+    queryKey: ["kb", "article", tenantSlug, slug],
+    queryFn: () => getArticleBySlug(tenantSlug, slug),
+    enabled: !!slug,
   });
 }
 
@@ -79,12 +79,13 @@ export function useDeleteArticle(tenantSlug: string) {
   });
 }
 
+/** Votes by article id; the article page is cached by slug, so the slug is passed for the refresh. */
 export function useVoteArticle(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, helpful }: { id: string; helpful: boolean }) =>
+    mutationFn: ({ id, helpful }: { id: string; slug: string; helpful: boolean }) =>
       voteArticle(tenantSlug, id, helpful),
-    onSuccess: (_, { id }) =>
-      qc.invalidateQueries({ queryKey: ["kb", "article", tenantSlug, id] }),
+    onSuccess: (_, { slug }) =>
+      qc.invalidateQueries({ queryKey: ["kb", "article", tenantSlug, slug] }),
   });
 }

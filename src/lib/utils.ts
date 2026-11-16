@@ -1,5 +1,9 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatDate, formatDateTime } from "@bengo-hub/shared-ui-lib/format";
+
+// Dates come from the shared formatter, which shows them in the signed-in user's time zone.
+export { formatDate, formatDateTime };
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -10,32 +14,10 @@ export function orgRoute(orgSlug: string, path: string): string {
   return `/${orgSlug}${clean === "/" ? "" : clean}`;
 }
 
-export function formatDate(dateStr: string): string {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-export function formatDateTime(dateStr: string): string {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
+/** "just now", "5m ago", "3h ago", "2d ago", then the date. */
 export function formatRelativeTime(dateStr: string): string {
-  if (!dateStr) return "—";
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = now - then;
-  const minutes = Math.floor(diff / 60_000);
+  if (!dateStr) return "-";
+  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60_000);
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
