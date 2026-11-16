@@ -1,229 +1,142 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { useAgents, useCreateAgent, useDeleteAgent } from "@/hooks/useAgents";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-} from "@/components/ui/base";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Info, Shield, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, PlusCircle, Shield, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
+import { useAgents, useDeleteAgent } from "@/hooks/useAgents";
+import { useLookups } from "@/hooks/useLookups";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { PERM } from "@/lib/rbac/permissions";
+import { PageHeader } from "@/components/common/page-header";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Button } from "@/components/ui/base";
 import { orgRoute } from "@/lib/utils";
-
-const schema = z.object({
-  display_name: z.string().min(2, "Name required"),
-  email: z.string().email("Valid email required"),
-  user_id: z.string().min(1, "User ID required"),
-  role: z.enum(["agent", "supervisor", "admin"]),
-});
-
-type FormData = z.infer<typeof schema>;
+import type { Agent } from "@/types/agents";
+import { buildAgentColumns } from "./agents-columns";
+import { AgentSheet } from "./agent-sheet";
 
 export default function AgentsPage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
-  const [showForm, setShowForm] = useState(false);
+  const { can, role, isPlatformOwner } = useServicePermissions(orgSlug);
+  const canManage = can(PERM.agentsManage);
+  // Manual add is an admin fallback; everyone else relies on agents being created at first sign-in.
+  const canAddManually = canManage && (isPlatformOwner || role === "ticketing_admin");
 
-  const { data, isLoading } = useAgents(orgSlug);
-  const agents = data?.data ?? [];
-  const createAgent = useCreateAgent(orgSlug);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const { data, isLoading, isError, refetch } = useAgents(orgSlug, { page, limit });
+  const { teamName, teamOptions } = useLookups(orgSlug);
   const deleteAgent = useDeleteAgent(orgSlug);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { role: "agent" } });
+  const [editing, setEditing] = useState<Agent | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [removing, setRemoving] = useState<Agent | null>(null);
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      await createAgent.mutateAsync({
-        display_name: data.display_name,
-        email: data.email,
-        user_id: data.user_id,
-        role: data.role,
-      });
-      toast.success("Agent added");
-      reset();
-      setShowForm(false);
-    } catch {
-      toast.error("Failed to add agent.");
-    }
+  const openSheet = (agent: Agent | null) => {
+    setEditing(agent);
+    setSheetOpen(true);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Remove agent "${name}"?`)) return;
+  const columns = useMemo(
+    () =>
+      buildAgentColumns({
+        teamName,
+        canManage,
+        onEdit: (a) => {
+          setEditing(a);
+          setSheetOpen(true);
+        },
+        onDelete: setRemoving,
+      }),
+    [teamName, canManage],
+  );
+
+  const total = data?.total ?? 0;
+
+  const onRemove = async () => {
+    if (!removing) return;
     try {
-      await deleteAgent.mutateAsync(id);
+      await deleteAgent.mutateAsync(removing.id);
       toast.success("Agent removed");
+      setRemoving(null);
     } catch {
-      toast.error("Failed to remove agent.");
+      toast.error("The agent could not be removed.");
     }
-  };
-
-  const roleColors: Record<string, string> = {
-    agent: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    supervisor: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    admin: "bg-primary/10 text-primary",
-  };
-
-  const statusColors: Record<string, string> = {
-    available: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    busy: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-    away: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    offline: "bg-gray-100 text-gray-500",
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href={orgRoute(orgSlug, "/admin")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Admin
-        </Link>
+    <div className="mx-auto max-w-6xl space-y-4">
+      <PageHeader
+        back={{ href: orgRoute(orgSlug, "/admin"), label: "Admin" }}
+        icon={Shield}
+        title="Agents"
+        subtitle={`${total} agents`}
+        actions={
+          canAddManually ? (
+            <Button variant="outline" onClick={() => openSheet(null)}>
+              <UserPlus className="h-4 w-4" /> Add manually
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p>
+          Staff become agents automatically the first time they sign in to Ticketing. Set their team, role and ticket
+          limit here.
+        </p>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
-            <Shield className="h-6 w-6 text-primary" />
-            Agents
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{agents.length} agents</p>
-        </div>
-        <Button onClick={() => setShowForm((v) => !v)} className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          {showForm ? "Cancel" : "Add Agent"}
-        </Button>
-      </div>
+      <DataTable
+        columns={columns}
+        rows={data?.data ?? []}
+        rowKey={(a) => a.id}
+        loading={isLoading}
+        loadingRows={5}
+        error={isError}
+        onRetry={() => void refetch()}
+        emptyText="No agents yet. Staff appear here after their first sign-in."
+        onRowClick={canManage ? (a) => openSheet(a) : undefined}
+        storageKey="ticketing.agents.columns"
+        showExportCsv
+        exportFileName="agents"
+        maxBodyHeight={false}
+        page={page}
+        totalPages={Math.max(1, Math.ceil(total / limit))}
+        onPageChange={setPage}
+        total={total}
+        pageSize={limit}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageSizeChange={(n) => {
+          setLimit(n);
+          setPage(1);
+        }}
+      />
 
-      {showForm && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Add Agent</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="display_name">Full Name *</Label>
-                  <Input id="display_name" placeholder="John Doe" {...register("display_name")} />
-                  {errors.display_name && (
-                    <p className="text-xs text-destructive">{errors.display_name.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input id="email" type="email" placeholder="john@example.com" {...register("email")} />
-                  {errors.email && (
-                    <p className="text-xs text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="user_id">User ID *</Label>
-                  <Input id="user_id" placeholder="SSO user ID" {...register("user_id")} />
-                  {errors.user_id && (
-                    <p className="text-xs text-destructive">{errors.user_id.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <select
-                    id="role"
-                    {...register("role")}
-                    className="h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="agent">Agent</option>
-                    <option value="supervisor">Supervisor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => { reset(); setShowForm(false); }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting || createAgent.isPending}>
-                  {(isSubmitting || createAgent.isPending) && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                  Add Agent
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+      {sheetOpen && (
+        <AgentSheet
+          key={editing?.id ?? "new"}
+          orgSlug={orgSlug}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          agent={editing}
+          teamOptions={teamOptions}
+        />
       )}
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : agents.length === 0 ? (
-            <div className="p-8 text-center">
-              <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No agents yet. Add your first agent.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {agents.map((agent) => (
-                <div key={agent.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                      {agent.display_name[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{agent.display_name}</p>
-                      <p className="text-xs text-muted-foreground">{agent.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${roleColors[agent.role] ?? ""}`}>
-                      {agent.role}
-                    </span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[agent.status] ?? ""}`}>
-                      {agent.status}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => void handleDelete(agent.id, agent.display_name)}
-                      title="Remove agent"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(o) => !o && setRemoving(null)}
+        title={`Remove ${removing?.display_name ?? "agent"}?`}
+        description="This removes the agent from Ticketing. Reassign their open tickets first."
+        confirmLabel="Remove agent"
+        loading={deleteAgent.isPending}
+        onConfirm={() => void onRemove()}
+      />
     </div>
   );
 }

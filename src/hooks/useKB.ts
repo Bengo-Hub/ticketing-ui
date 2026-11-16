@@ -1,4 +1,7 @@
+"use client";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchQuery } from "@bengo-hub/shared-ui-lib/search/query";
 import {
   createArticle,
   deleteArticle,
@@ -11,11 +14,14 @@ import {
 } from "@/lib/api/kb";
 import type { CreateArticleData, KBListParams, UpdateArticleData } from "@/types/kb";
 
-// Public (no-auth) — used by the public KB pages.
-export function useArticles(params: KBListParams) {
-  return useQuery({
+// Public (no-auth), used by the public KB pages. The search term is debounced by the caller and
+// a newer term aborts the older request.
+export function useArticleSearch(params: Omit<KBListParams, "search">, term: string) {
+  return useSearchQuery({
     queryKey: ["kb", "articles", params],
-    queryFn: () => getArticles(params),
+    term,
+    fetcher: (search, signal) => getArticles({ ...params, search: search || undefined }, signal),
+    enabled: !!params.tenantSlug,
   });
 }
 
@@ -27,12 +33,14 @@ export function useArticle(tenantSlug: string, slug: string) {
   });
 }
 
-// Staff/admin (auth required) — used by the admin KB pages, which must see
+// Staff and admin (auth required), used by the admin KB pages, which must see
 // every status (not just published) via the server-enforced /kb/admin path.
-export function useAdminArticles(params: KBListParams) {
-  return useQuery({
+export function useAdminArticleSearch(params: Omit<KBListParams, "search">, term: string) {
+  return useSearchQuery({
     queryKey: ["kb", "admin-articles", params],
-    queryFn: () => getAdminArticles(params),
+    term,
+    fetcher: (search, signal) => getAdminArticles({ ...params, search: search || undefined }, signal),
+    enabled: !!params.tenantSlug,
   });
 }
 

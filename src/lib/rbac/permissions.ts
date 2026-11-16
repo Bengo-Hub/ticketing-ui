@@ -57,6 +57,24 @@ export function inferServiceRole(globalRoles: string[]): ServiceRole {
   return "customer";
 }
 
+/**
+ * Whether a set of granted codes covers `code`, by the same rules as ticketing-api's rbac module:
+ * an exact match; `{module}.manage` covers every action in its module; `{module}.manage_own`
+ * covers every `*_own` action; and `view`, `change` or `delete` covers its `_own` form.
+ */
+export function grants(granted: readonly string[], code: string): boolean {
+  if (granted.includes(code)) return true;
+  const dot = code.lastIndexOf(".");
+  const mod = code.slice(0, dot);
+  const action = code.slice(dot + 1);
+  if (granted.includes(`${mod}.manage`)) return true;
+  if (action.endsWith("_own")) {
+    if (granted.includes(`${mod}.manage_own`)) return true;
+    if (granted.includes(`${mod}.${action.slice(0, -4)}`)) return true;
+  }
+  return false;
+}
+
 export function permissionsForRole(role: ServiceRole): Permission[] {
   return ROLE_PERMISSIONS[role] ?? [];
 }

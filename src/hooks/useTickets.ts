@@ -1,11 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchQuery } from "@bengo-hub/shared-ui-lib/search/query";
 import {
   addComment,
   assignTicket,
   createTicket,
-  getCategories,
+  deleteTicket,
   getTicket,
   getTicketAnalytics,
   getTicketComments,
@@ -25,9 +26,22 @@ import type {
 export function useTickets(params: TicketListParams, enabled = true) {
   return useQuery({
     queryKey: ["tickets", params],
-    queryFn: () => getTickets(params),
+    queryFn: ({ signal }) => getTickets(params, signal),
     enabled: enabled && !!params.tenantSlug,
     staleTime: 60_000,
+  });
+}
+
+/**
+ * The ticket list driven by a debounced search term: the term is part of the key, a newer term
+ * aborts the older request and the previous page stays on screen while the next one loads.
+ */
+export function useTicketSearch(params: Omit<TicketListParams, "search">, term: string) {
+  return useSearchQuery({
+    queryKey: ["tickets", params],
+    term,
+    fetcher: (search, signal) => getTickets({ ...params, search: search || undefined }, signal),
+    enabled: !!params.tenantSlug,
   });
 }
 
@@ -49,21 +63,12 @@ export function useTicketComments(tenantSlug: string, ticketId: string) {
   });
 }
 
-export function useTicketStats(tenantSlug: string) {
+export function useTicketStats(tenantSlug: string, enabled = true) {
   return useQuery({
     queryKey: ["ticket-stats", tenantSlug],
     queryFn: () => getTicketStats(tenantSlug),
-    enabled: !!tenantSlug,
+    enabled: enabled && !!tenantSlug,
     staleTime: 60_000,
-  });
-}
-
-export function useCategories(tenantSlug: string) {
-  return useQuery({
-    queryKey: ["categories", tenantSlug],
-    queryFn: () => getCategories(tenantSlug),
-    enabled: !!tenantSlug,
-    staleTime: 10 * 60_000,
   });
 }
 
@@ -114,19 +119,33 @@ export function useAssignTicket(tenantSlug: string) {
   });
 }
 
+export function useDeleteTicket(tenantSlug: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteTicket(tenantSlug, id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["tickets"] });
+      void qc.invalidateQueries({ queryKey: ["ticket-stats", tenantSlug] });
+    },
+  });
+}
+
 export function useAddComment(tenantSlug: string, ticketId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: AddCommentData) => addComment(tenantSlug, ticketId, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["ticket-comments", tenantSlug, ticketId] });
+      void qc.invalidateQueries({ queryKey: ["ticket", tenantSlug, ticketId] });
     },
   });
 }
 
-export function useTicketAnalytics(tenantSlug: string, days = 30) {
+export function useTicketAnalytics(tenantSlug: string, days = 30, enabled = true) {
   return useQuery({
     queryKey: ["ticket-analytics", tenantSlug, days],
     queryFn: () => getTicketAnalytics(tenantSlug, days),
+    enabled: enabled && !!tenantSlug,
+    staleTime: 60_000,
   });
 }

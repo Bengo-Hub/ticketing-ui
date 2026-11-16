@@ -23,9 +23,12 @@ function formatDuration(ms: number): string {
   return `${minutes}m`;
 }
 
+// The prop carries only the deadline, not when the clock started, so colour bands measure the time
+// left against a fixed 4-hour window. It is visual only.
+const COLOUR_WINDOW_MS = 4 * 60 * 60 * 1000;
+
 export function SLATimer({ dueAt, breached, label, className }: SLATimerProps) {
   const [remaining, setRemaining] = useState<number>(0);
-  const [totalWindow, setTotalWindow] = useState<number>(1);
 
   useEffect(() => {
     const due = new Date(dueAt).getTime();
@@ -40,15 +43,7 @@ export function SLATimer({ dueAt, breached, label, className }: SLATimerProps) {
     return () => clearInterval(id);
   }, [dueAt]);
 
-  // Approximate window as 2× the original deadline offset from a "10 minutes ago" anchor
-  // This is visual only; use remaining/totalWindow ratio for colour bands.
-  useEffect(() => {
-    // We don't know when the ticket was created from this prop alone, so use
-    // remaining vs. a reference of 4 hours as the "full" window for colour purposes.
-    setTotalWindow(4 * 60 * 60 * 1000);
-  }, []);
-
-  const pct = totalWindow > 0 ? Math.max(0, remaining / totalWindow) : 0;
+  const pct = Math.max(0, remaining / COLOUR_WINDOW_MS);
 
   const colour =
     breached || remaining <= 0

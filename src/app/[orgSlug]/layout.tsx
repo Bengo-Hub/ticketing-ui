@@ -6,7 +6,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { BrandingProvider } from "@/providers/branding-provider";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { PWAUpdateBanner } from "@/components/pwa-update-banner";
+import { StaleChunkRecovery } from "@bengo-hub/shared-ui-lib/offline";
 import { PWARegistration } from "@/components/pwa-registration";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -37,14 +37,14 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <BrandingProvider>
         <ManifestInjector />
-        <PWAUpdateBanner />
+        <StaleChunkRecovery />
         <PWARegistration />
         <div className="flex min-h-dvh flex-col">
           <Header onMenuClick={() => setSidebarOpen(true)} />
           <div className="flex flex-1 overflow-hidden">
             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             {/* Bottom padding keeps content clear of the phone bottom bar and the iOS home indicator. */}
-            <main className="flex-1 overflow-y-auto p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6">
+            <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6">
               <RouteGuard>{children}</RouteGuard>
             </main>
           </div>

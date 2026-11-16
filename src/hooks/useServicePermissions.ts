@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { useMe } from "@/hooks/useMe";
 import {
+  grants,
   inferServiceRole,
   isStaffRole,
   permissionsForRole,
@@ -60,7 +61,7 @@ export function useServicePermissions(slug: string) {
   );
 
   const can = useCallback(
-    (...codes: Permission[]) => bypass || codes.some((c) => permissions.includes(c)),
+    (...codes: Permission[]) => bypass || codes.some((c) => grants(permissions, c)),
     [bypass, permissions],
   );
 

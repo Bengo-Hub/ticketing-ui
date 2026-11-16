@@ -7,6 +7,7 @@ import { Button, Card, CardContent, Separator } from "@/components/ui/base";
 import { formatDateTime, orgRoute } from "@/lib/utils";
 import { ArrowLeft, BookOpen, Eye, ThumbsDown, ThumbsUp, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { RichTextView } from "@/components/common/rich-text";
 
 export default function KBArticlePage() {
   const params = useParams();
@@ -90,9 +91,7 @@ export default function KBArticlePage() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm text-foreground leading-relaxed">
-            {article.content}
-          </div>
+          <RichTextView value={article.content} className="text-foreground" />
         </CardContent>
       </Card>
 

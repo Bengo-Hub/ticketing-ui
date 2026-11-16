@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  type DirectoryListParams,
   createAgent,
   createTeam,
   deleteAgent,
@@ -13,20 +14,27 @@ import {
 } from "@/lib/api/agents";
 import type { CreateAgentData, CreateTeamData, UpdateAgentData, UpdateTeamData } from "@/types/agents";
 
-export function useAgents(tenantSlug: string) {
+/** Agents page by page. Pickers pass `{ limit: 100 }`, the API's largest page. */
+export function useAgents(tenantSlug: string, params: DirectoryListParams = {}, enabled = true) {
   return useQuery({
-    queryKey: ["agents", tenantSlug],
-    queryFn: () => getAgents(tenantSlug),
-    enabled: !!tenantSlug,
+    queryKey: ["agents", tenantSlug, params],
+    queryFn: () => getAgents(tenantSlug, params),
+    enabled: enabled && !!tenantSlug,
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
   });
 }
 
-export function useTeams(tenantSlug: string) {
+export function useTeams(
+  tenantSlug: string,
+  params: Pick<DirectoryListParams, "page" | "limit" | "active"> = {},
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ["teams", tenantSlug],
-    queryFn: () => getTeams(tenantSlug),
-    enabled: !!tenantSlug,
+    queryKey: ["teams", tenantSlug, params],
+    queryFn: () => getTeams(tenantSlug, params),
+    enabled: enabled && !!tenantSlug,
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
   });
 }

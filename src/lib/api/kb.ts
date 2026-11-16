@@ -7,14 +7,15 @@ import type {
   UpdateArticleData,
 } from "@/types/kb";
 
-// getArticles / getArticle hit the PUBLIC (no-auth) endpoints — used by the
+// getArticles / getArticle hit the PUBLIC (no-auth) endpoints, used by the
 // public KB pages. Admin pages must use the getAdminArticles/getAdminArticle
 // below instead: the backend enforces published+public filtering server-side
 // only on the public path (ticketing-api kb/handler.go RegisterPublicRoutes).
-export async function getArticles(params: KBListParams): Promise<KBListResponse> {
+export async function getArticles(params: KBListParams, signal?: AbortSignal): Promise<KBListResponse> {
   const { tenantSlug, ...rest } = params;
   const { data } = await api.get<KBListResponse>(`api/v1/${tenantSlug}/kb/articles`, {
     params: rest,
+    signal,
   });
   return data;
 }
@@ -29,10 +30,11 @@ export async function getArticleBySlug(tenantSlug: string, slug: string): Promis
 
 // getAdminArticles / getAdminArticle / create / update / delete hit the
 // staff-only /kb/admin endpoints (auth required, unrestricted status filter).
-export async function getAdminArticles(params: KBListParams): Promise<KBListResponse> {
+export async function getAdminArticles(params: KBListParams, signal?: AbortSignal): Promise<KBListResponse> {
   const { tenantSlug, ...rest } = params;
   const { data } = await api.get<KBListResponse>(`api/v1/${tenantSlug}/kb/admin/articles`, {
     params: rest,
+    signal,
   });
   return data;
 }
@@ -78,10 +80,11 @@ export async function searchPublicArticles(
   tenantSlug: string,
   search: string,
   limit = 5,
+  signal?: AbortSignal,
 ): Promise<KBArticle[]> {
   const { data } = await api.get<KBListResponse>(
     `api/v1/${tenantSlug}/kb/articles`,
-    { params: { search, limit } },
+    { params: { search, limit }, signal },
   );
   return data.data ?? [];
 }

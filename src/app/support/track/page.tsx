@@ -118,9 +118,12 @@ function TrackTicket() {
   const [replyError, setReplyError] = useState<string | null>(null);
   const [replySent, setReplySent] = useState(false);
 
-  useEffect(() => {
+  // A new link slug replaces the organisation field, adjusted during render (no effect).
+  const [seenSlug, setSeenSlug] = useState(linkedSlug);
+  if (linkedSlug !== seenSlug) {
+    setSeenSlug(linkedSlug);
     if (linkedSlug) setOrg(linkedSlug);
-  }, [linkedSlug]);
+  }
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -166,11 +169,14 @@ function TrackTicket() {
     }
   }
 
+  // This effect answers an external event (the access token expired) by sending a new code, and
+  // the step change it makes ends the condition, so it runs once. reverify only reads state that
+  // is already current when the query fails.
   useEffect(() => {
     if (step === "ticket" && ticket.isError && isExpired(ticket.error)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void reverify("Your access to this ticket has ended. We sent a new code to confirm it is still you.");
     }
-    // reverify only reads state that is already current when the query fails.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, ticket.isError, ticket.error]);
 

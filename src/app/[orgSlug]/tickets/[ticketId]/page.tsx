@@ -1,98 +1,79 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useTicket, useTicketComments, useAddComment, useUpdateTicketStatus } from "@/hooks/useTickets";
+import { AlertCircle, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useDeleteTicket, useTicket, useTicketComments } from "@/hooks/useTickets";
 import { useCommentStream } from "@/hooks/useSSE";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { PERM } from "@/lib/rbac/permissions";
+import { PageHeader } from "@/components/common/page-header";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Button } from "@/components/ui/base";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
 import { SLASidebar } from "@/components/tickets/SLASidebar";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Label,
-  Separator,
-  Textarea,
-} from "@/components/ui/base";
+import { TicketConversation } from "@/components/tickets/TicketConversation";
+import { ReplyComposer } from "@/components/tickets/ReplyComposer";
+import { TicketProperties } from "@/components/tickets/TicketProperties";
+import { CHANNEL_LABEL } from "@/lib/ticket-options";
 import { formatDateTime, formatRelativeTime, orgRoute } from "@/lib/utils";
-import type { TicketStatus } from "@/types/tickets";
-import { ArrowLeft, Loader2, MessageSquare, User, AlertCircle } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
+import type { Ticket } from "@/types/tickets";
 
-const commentSchema = z.object({
-  content: z.string().min(1, "Comment cannot be empty"),
-  comment_type: z.enum(["public", "internal"]),
-});
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-right font-medium">{children}</span>
+    </div>
+  );
+}
 
-type CommentFormData = z.infer<typeof commentSchema>;
-
-const STATUS_TRANSITIONS: Array<{ label: string; value: TicketStatus }> = [
-  { label: "Open", value: "open" },
-  { label: "In Progress", value: "in_progress" },
-  { label: "Pending Customer", value: "pending_customer" },
-  { label: "Pending Internal", value: "pending_internal" },
-  { label: "Resolved", value: "resolved" },
-  { label: "Closed", value: "closed" },
-  { label: "Cancelled", value: "cancelled" },
-];
+function TicketDetails({ ticket }: { ticket: Ticket }) {
+  return (
+    <section aria-label="Details" className="space-y-2.5 rounded-xl border border-border bg-card p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Details</h2>
+      <DetailRow label="Channel">{CHANNEL_LABEL[ticket.channel] ?? ticket.channel}</DetailRow>
+      <DetailRow label="Created">{formatDateTime(ticket.created_at)}</DetailRow>
+      <DetailRow label="Updated">{formatRelativeTime(ticket.updated_at)}</DetailRow>
+      {ticket.first_response_at && <DetailRow label="First response">{formatDateTime(ticket.first_response_at)}</DetailRow>}
+      {ticket.resolved_at && <DetailRow label="Resolved">{formatDateTime(ticket.resolved_at)}</DetailRow>}
+      {ticket.closed_at && <DetailRow label="Closed">{formatDateTime(ticket.closed_at)}</DetailRow>}
+      {ticket.escalation_level > 0 && <DetailRow label="Escalation">Level {ticket.escalation_level}</DetailRow>}
+      {ticket.external_reference && <DetailRow label="Reference">{ticket.external_reference}</DetailRow>}
+      {ticket.tags && ticket.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {ticket.tags.map((tag) => (
+            <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
   const ticketId = params.ticketId as string;
-
   useCommentStream(orgSlug, ticketId);
 
+  const { can, isStaff } = useServicePermissions(orgSlug);
   const { data: ticket, isLoading, isError } = useTicket(orgSlug, ticketId);
   const { data: comments = [], isLoading: commentsLoading } = useTicketComments(orgSlug, ticketId);
-  const addComment = useAddComment(orgSlug, ticketId);
-  const updateStatus = useUpdateTicketStatus(orgSlug);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CommentFormData>({
-    resolver: zodResolver(commentSchema),
-    defaultValues: { comment_type: "public" },
-  });
-
-  const onSubmitComment = async (data: CommentFormData) => {
-    try {
-      await addComment.mutateAsync({
-        content: data.content,
-        comment_type: data.comment_type,
-      });
-      reset();
-      toast.success("Comment added");
-    } catch {
-      toast.error("Failed to add comment.");
-    }
-  };
-
-  const handleStatusChange = async (status: TicketStatus) => {
-    try {
-      await updateStatus.mutateAsync({ id: ticketId, status });
-      toast.success(`Status updated to ${status}`);
-    } catch {
-      toast.error("Failed to update status.");
-    }
-  };
+  const deleteTicket = useDeleteTicket(orgSlug);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (isError) {
     return (
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">
-        <AlertCircle className="h-5 w-5" />
-        <p className="text-sm font-medium">Failed to load ticket.</p>
+      <div className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive">
+        <AlertCircle className="h-5 w-5 shrink-0" />
+        <p className="text-sm font-medium">The ticket could not be loaded.</p>
       </div>
     );
   }
@@ -100,223 +81,91 @@ export default function TicketDetailPage() {
   if (isLoading || !ticket) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
         ))}
       </div>
     );
   }
 
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Back */}
-      <Link
-        href={orgRoute(orgSlug, "/tickets")}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Tickets
-      </Link>
+  const breached = ticket.sla_response_breached || ticket.sla_resolution_breached;
+  const canReply = can(PERM.commentsAdd) && ticket.status !== "cancelled";
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-sm font-mono text-muted-foreground font-bold">
-              #{ticket.ticket_number}
-            </span>
+  const onDelete = async () => {
+    try {
+      await deleteTicket.mutateAsync(ticket.id);
+      toast.success("Ticket deleted");
+      router.push(orgRoute(orgSlug, "/tickets"));
+    } catch {
+      toast.error("The ticket could not be deleted.");
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-[96rem]">
+      <PageHeader
+        back={{ href: orgRoute(orgSlug, "/tickets"), label: "Tickets" }}
+        title={ticket.subject}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs font-semibold">#{ticket.ticket_number}</span>
             <TicketStatusBadge status={ticket.status} />
             <PriorityBadge priority={ticket.priority} />
             <SLAStatusBadge ticket={ticket} />
-          </div>
-          <h1 className="text-xl font-black text-foreground break-words">{ticket.subject}</h1>
-        </div>
+          </span>
+        }
+        actions={
+          can(PERM.ticketsDelete) ? (
+            <Button variant="outline" onClick={() => setConfirmDelete(true)} className="text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" /> Delete
+            </Button>
+          ) : undefined
+        }
+      />
 
-        {/* Status change */}
-        <div className="flex-shrink-0">
-          <select
-            value={ticket.status}
-            onChange={(e) => void handleStatusChange(e.target.value as TicketStatus)}
-            className="h-10 rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {STATUS_TRANSITIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* SLA breach banner */}
-      {(ticket.sla_response_breached || ticket.sla_resolution_breached) && (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
+      {breached && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <p className="text-sm font-semibold">
-            {ticket.sla_resolution_breached
-              ? "Resolution SLA has been breached."
-              : "First response SLA has been breached."}
+            {ticket.sla_resolution_breached ? "The resolution target has been missed." : "The first response target has been missed."}
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Description */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{ticket.description}</p>
-            </CardContent>
-          </Card>
-
-          {/* Comments */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Comments ({comments.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {commentsLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-                  ))}
-                </div>
-              ) : comments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No comments yet.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className={`rounded-xl p-4 ${
-                        comment.comment_type === "internal"
-                          ? "bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800"
-                          : comment.comment_type === "system"
-                          ? "bg-muted border border-border"
-                          : "bg-card border border-border"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-3.5 w-3.5 text-primary" />
-                          </div>
-                          <span className="text-xs font-semibold text-foreground capitalize">
-                            {comment.author_type}
-                          </span>
-                          {comment.comment_type === "internal" && (
-                            <span className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
-                              (Internal)
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatRelativeTime(comment.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">
-                        {comment.content}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Add comment form */}
-              <form onSubmit={handleSubmit(onSubmitComment)} className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="content">Add Comment</Label>
-                  <Textarea
-                    id="content"
-                    placeholder="Type your comment..."
-                    rows={3}
-                    {...register("content")}
-                  />
-                  {errors.content && (
-                    <p className="text-xs text-destructive">{errors.content.message}</p>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <select
-                    {...register("comment_type")}
-                    className="h-9 rounded-md border border-border bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="public">Public Reply</option>
-                    <option value="internal">Internal Note</option>
-                  </select>
-                  <Button type="submit" size="sm" disabled={isSubmitting || addComment.isPending}>
-                    {(isSubmitting || addComment.isPending) && (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    )}
-                    Submit
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+      {/*
+        Phones stack conversation, then properties, then details. From lg the properties and SLA sit in
+        a right rail; from xl the details move to a left pane for the full three-pane workspace.
+      */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[16rem_minmax(0,1fr)_19rem]">
+        <div className="min-w-0 space-y-4 xl:col-start-2 xl:row-start-1">
+          <TicketConversation ticket={ticket} comments={comments} loading={commentsLoading} />
+          {canReply && <ReplyComposer orgSlug={orgSlug} ticketId={ticket.id} allowInternal={isStaff} />}
         </div>
-
-        {/* Sidebar metadata */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Ticket Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Channel</span>
-                <span className="font-medium capitalize">{ticket.channel}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Customer ID</span>
-                <span className="font-medium font-mono text-xs">{ticket.customer_id.slice(0, 8)}...</span>
-              </div>
-              {ticket.assigned_agent_id && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Assignee</span>
-                  <span className="font-medium font-mono text-xs">
-                    {ticket.assigned_agent_id.slice(0, 8)}...
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span className="font-medium">{formatDateTime(ticket.created_at)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Updated</span>
-                <span className="font-medium">{formatRelativeTime(ticket.updated_at)}</span>
-              </div>
-              {ticket.resolved_at && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Resolved</span>
-                  <span className="font-medium">{formatDateTime(ticket.resolved_at)}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* SLA */}
-          <Card>
-            <CardContent className="pt-4">
+        <aside className="min-w-0 space-y-4 xl:col-start-3 xl:row-start-1">
+          {isStaff && <TicketProperties orgSlug={orgSlug} ticket={ticket} />}
+          {(ticket.sla_response_due_at || ticket.sla_resolution_due_at) && (
+            <div className="rounded-xl border border-border bg-card p-4">
               <SLASidebar ticket={ticket} />
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          )}
+          <div className="xl:hidden">
+            <TicketDetails ticket={ticket} />
+          </div>
+        </aside>
+        <aside className="hidden min-w-0 xl:col-start-1 xl:row-start-1 xl:block">
+          <TicketDetails ticket={ticket} />
+        </aside>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this ticket?"
+        description={`Ticket #${ticket.ticket_number} and its conversation will be removed.`}
+        confirmLabel="Delete ticket"
+        loading={deleteTicket.isPending}
+        onConfirm={() => void onDelete()}
+      />
     </div>
   );
 }

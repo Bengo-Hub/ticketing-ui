@@ -1,176 +1,208 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { useTeams, useCreateTeam, useDeleteTeam } from "@/hooks/useAgents";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-  Textarea,
-} from "@/components/ui/base";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Loader2, PlusCircle, Users } from "lucide-react";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, PlusCircle, Trash2, Users } from "lucide-react";
-import Link from "next/link";
+import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
+import { useCreateTeam, useDeleteTeam, useTeams, useUpdateTeam } from "@/hooks/useAgents";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { PERM } from "@/lib/rbac/permissions";
+import { PageHeader } from "@/components/common/page-header";
+import { FormSheet } from "@/components/common/form-sheet";
+import { Field, SwitchField } from "@/components/common/field";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Button, Input } from "@/components/ui/base";
 import { orgRoute } from "@/lib/utils";
+import type { Team } from "@/types/agents";
+import { buildTeamColumns } from "./teams-columns";
 
-const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string().optional(),
-});
+function TeamSheet({
+  orgSlug,
+  team,
+  open,
+  onOpenChange,
+}: {
+  orgSlug: string;
+  team: Team | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [name, setName] = useState(team?.name ?? "");
+  const [description, setDescription] = useState(team?.description ?? "");
+  const [active, setActive] = useState(team?.is_active ?? true);
+  const [error, setError] = useState<string | null>(null);
+  const create = useCreateTeam(orgSlug);
+  const update = useUpdateTeam(orgSlug);
+  const pending = create.isPending || update.isPending;
 
-type FormData = z.infer<typeof schema>;
-
-export default function TeamsPage() {
-  const params = useParams();
-  const orgSlug = params.orgSlug as string;
-  const [showForm, setShowForm] = useState(false);
-
-  const { data, isLoading } = useTeams(orgSlug);
-  const teams = data?.data ?? [];
-  const createTeam = useCreateTeam(orgSlug);
-  const deleteTeam = useDeleteTeam(orgSlug);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  const onSubmit = async (data: FormData) => {
+  const save = async () => {
+    setError(null);
+    if (name.trim().length < 2) return setError("The team name needs at least 2 characters.");
     try {
-      await createTeam.mutateAsync({ name: data.name, description: data.description });
-      toast.success("Team created");
-      reset();
-      setShowForm(false);
+      if (team) {
+        await update.mutateAsync({
+          id: team.id,
+          data: { name: name.trim(), description: description.trim(), is_active: active },
+        });
+        toast.success("Team updated");
+      } else {
+        await create.mutateAsync({ name: name.trim(), description: description.trim() || undefined });
+        toast.success("Team created");
+      }
+      onOpenChange(false);
     } catch {
-      toast.error("Failed to create team.");
-    }
-  };
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete team "${name}"?`)) return;
-    try {
-      await deleteTeam.mutateAsync(id);
-      toast.success("Team deleted");
-    } catch {
-      toast.error("Failed to delete team.");
+      setError("The team could not be saved.");
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href={orgRoute(orgSlug, "/admin")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Admin
-        </Link>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      size="sm"
+      title={team ? `Edit ${team.name}` : "New team"}
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
+            Cancel
+          </Button>
+          <Button onClick={() => void save()} disabled={pending}>
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {team ? "Save changes" : "Create team"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Name" htmlFor="team-name" required>
+          <Input id="team-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Technical support" />
+        </Field>
+        <Field label="Description" htmlFor="team-desc" hint="One line on what the team handles.">
+          <Input id="team-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+        {team && (
+          <SwitchField
+            label="Active"
+            description="Inactive teams are hidden from assignment pickers."
+            checked={active}
+            onChange={setActive}
+          />
+        )}
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
       </div>
+    </FormSheet>
+  );
+}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
-            <Users className="h-6 w-6 text-primary" />
-            Teams
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{teams.length} teams</p>
-        </div>
-        <Button onClick={() => setShowForm((v) => !v)} className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          {showForm ? "Cancel" : "New Team"}
-        </Button>
-      </div>
+export default function TeamsPage() {
+  const params = useParams();
+  const orgSlug = params.orgSlug as string;
+  const { can } = useServicePermissions(orgSlug);
+  const canManage = can(PERM.teamsManage);
 
-      {showForm && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Create Team</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Team Name *</Label>
-                <Input id="name" placeholder="e.g. Technical Support" {...register("name")} />
-                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Optional description..."
-                  rows={2}
-                  {...register("description")}
-                />
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => { reset(); setShowForm(false); }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting || createTeam.isPending}>
-                  {(isSubmitting || createTeam.isPending) && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                  Create Team
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const { data, isLoading, isError, refetch } = useTeams(orgSlug, { page, limit });
+  const deleteTeam = useDeleteTeam(orgSlug);
+
+  const [editing, setEditing] = useState<Team | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [removing, setRemoving] = useState<Team | null>(null);
+
+  const columns = useMemo(
+    () =>
+      buildTeamColumns({
+        canManage,
+        onEdit: (t) => {
+          setEditing(t);
+          setSheetOpen(true);
+        },
+        onDelete: setRemoving,
+      }),
+    [canManage],
+  );
+  const total = data?.total ?? 0;
+
+  const onRemove = async () => {
+    if (!removing) return;
+    try {
+      await deleteTeam.mutateAsync(removing.id);
+      toast.success("Team deleted");
+      setRemoving(null);
+    } catch {
+      toast.error("The team could not be deleted.");
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-4">
+      <PageHeader
+        back={{ href: orgRoute(orgSlug, "/admin"), label: "Admin" }}
+        icon={Users}
+        title="Teams"
+        subtitle={`${total} teams`}
+        actions={
+          canManage ? (
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setSheetOpen(true);
+              }}
+            >
+              <PlusCircle className="h-4 w-4" /> New team
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <DataTable
+        columns={columns}
+        rows={data?.data ?? []}
+        rowKey={(t) => t.id}
+        loading={isLoading}
+        loadingRows={4}
+        error={isError}
+        onRetry={() => void refetch()}
+        emptyText="No teams yet."
+        onRowClick={
+          canManage
+            ? (t) => {
+                setEditing(t);
+                setSheetOpen(true);
+              }
+            : undefined
+        }
+        maxBodyHeight={false}
+        page={page}
+        totalPages={Math.max(1, Math.ceil(total / limit))}
+        onPageChange={setPage}
+        total={total}
+        pageSize={limit}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageSizeChange={(n) => {
+          setLimit(n);
+          setPage(1);
+        }}
+      />
+
+      {sheetOpen && (
+        <TeamSheet key={editing?.id ?? "new"} orgSlug={orgSlug} team={editing} open={sheetOpen} onOpenChange={setSheetOpen} />
       )}
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : teams.length === 0 ? (
-            <div className="p-8 text-center">
-              <Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No teams yet. Create your first team.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {teams.map((team) => (
-                <div key={team.id} className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-semibold text-foreground">{team.name}</p>
-                    {team.description && (
-                      <p className="text-sm text-muted-foreground mt-0.5">{team.description}</p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => void handleDelete(team.id, team.name)}
-                    title="Delete team"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(o) => !o && setRemoving(null)}
+        title={`Delete ${removing?.name ?? "team"}?`}
+        description="Move the team's agents and open tickets to another team first. This cannot be undone."
+        confirmLabel="Delete team"
+        loading={deleteTeam.isPending}
+        onConfirm={() => void onRemove()}
+      />
     </div>
   );
 }

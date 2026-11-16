@@ -1,24 +1,19 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-  Textarea,
-} from "@/components/ui/base";
-import type { ArticleStatus, KBArticle } from "@/types/kb";
 import { Loader2 } from "lucide-react";
+import { SearchableCombobox, type ComboboxOption } from "@bengo-hub/shared-ui-lib/combobox";
+import { RichTextEditor } from "@bengo-hub/shared-ui-lib/rich-text-editor";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Textarea } from "@/components/ui/base";
+import { Field } from "@/components/common/field";
+import { toPlainText } from "@/components/common/rich-text";
+import type { ArticleStatus, CreateArticleData, KBArticle } from "@/types/kb";
 
 const articleSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  content: z.string().min(10, "Content must be at least 10 characters"),
+  title: z.string().trim().min(3, "Title must be at least 3 characters"),
+  content: z.string().refine((v) => toPlainText(v).length >= 10, "Content must be at least 10 characters"),
   excerpt: z.string().optional(),
   category: z.string().optional(),
   tags: z.string().optional(),
@@ -27,6 +22,17 @@ const articleSchema = z.object({
 });
 
 export type ArticleFormData = z.infer<typeof articleSchema>;
+
+export const ARTICLE_STATUS_OPTIONS: ComboboxOption[] = [
+  { value: "draft", label: "Draft" },
+  { value: "published", label: "Published" },
+  { value: "archived", label: "Archived" },
+];
+
+const VISIBILITY_OPTIONS: ComboboxOption[] = [
+  { value: "public", label: "Public", description: "Customers can read it in the help centre." },
+  { value: "internal", label: "Internal only", description: "Only staff can read it." },
+];
 
 interface ArticleFormProps {
   defaultValues?: Partial<ArticleFormData>;
@@ -38,111 +44,96 @@ interface ArticleFormProps {
 export function ArticleForm({ defaultValues, onSubmit, submitLabel, isLoading }: ArticleFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ArticleFormData>({
     resolver: zodResolver(articleSchema),
-    defaultValues: {
-      status: "draft",
-      is_public: true,
-      ...defaultValues,
-    },
+    defaultValues: { title: "", content: "", status: "draft", is_public: true, ...defaultValues },
   });
 
   const submitting = isSubmitting || isLoading;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Article Details</CardTitle>
+        <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
+          <CardTitle className="text-base font-semibold">Article details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input id="title" placeholder="Article title..." {...register("title")} />
-            {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="excerpt">Excerpt</Label>
-            <Textarea
-              id="excerpt"
-              placeholder="Short summary shown in article lists..."
-              rows={2}
-              {...register("excerpt")}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                placeholder="e.g. billing, technical..."
-                {...register("category")}
+        <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+          <Field label="Title" htmlFor="title" required error={errors.title?.message}>
+            <Input id="title" placeholder="How to reset your password" {...register("title")} />
+          </Field>
+          <Field label="Excerpt" htmlFor="excerpt" hint="One or two sentences shown in article lists and search results.">
+            <Textarea id="excerpt" rows={2} {...register("excerpt")} />
+          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Category" htmlFor="category">
+              <Input id="category" placeholder="Billing" {...register("category")} />
+            </Field>
+            <Field label="Tags" htmlFor="tags" hint="Separate tags with commas.">
+              <Input id="tags" placeholder="password, login" {...register("tags")} />
+            </Field>
+            <Field label="Status" required>
+              <Controller
+                control={control}
+                name="status"
+                render={({ field }) => (
+                  <SearchableCombobox
+                    options={ARTICLE_STATUS_OPTIONS}
+                    value={field.value}
+                    onChange={(v) => v && field.onChange(v as ArticleStatus)}
+                    clearable={false}
+                  />
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
-              <Input
-                id="tags"
-                placeholder="Comma-separated tags..."
-                {...register("tags")}
+            </Field>
+            <Field label="Visibility">
+              <Controller
+                control={control}
+                name="is_public"
+                render={({ field }) => (
+                  <SearchableCombobox
+                    options={VISIBILITY_OPTIONS}
+                    value={field.value ? "public" : "internal"}
+                    onChange={(v) => v && field.onChange(v === "public")}
+                    clearable={false}
+                  />
+                )}
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <select
-                id="status"
-                {...register("status")}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="is_public">Visibility</Label>
-              <select
-                id="is_public"
-                {...register("is_public", { setValueAs: (v) => v === "true" })}
-                className="h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="true">Public</option>
-                <option value="false">Internal only</option>
-              </select>
-            </div>
+            </Field>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Content *</CardTitle>
+        <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
+          <CardTitle className="text-base font-semibold">Content</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Textarea
-            id="content"
-            placeholder="Write the article content here (Markdown supported)..."
-            rows={20}
-            className="font-mono text-sm"
-            {...register("content")}
+        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+          <Controller
+            control={control}
+            name="content"
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Write the article"
+                ariaLabel="Article content"
+                className="[&_.prose-editor]:min-h-[320px]"
+              />
+            )}
           />
           {errors.content && (
-            <p className="mt-1 text-xs text-destructive">{errors.content.message}</p>
+            <p className="mt-1 text-xs text-destructive" role="alert">
+              {errors.content.message}
+            </p>
           )}
         </CardContent>
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={submitting} className="min-w-[140px]">
+        <Button type="submit" disabled={submitting} className="w-full sm:w-auto sm:min-w-[140px]">
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitLabel}
         </Button>
@@ -158,20 +149,18 @@ export function articleDataToFormValues(article: KBArticle): ArticleFormData {
     excerpt: article.excerpt ?? "",
     category: article.category ?? "",
     tags: (article.tags ?? []).join(", "),
-    status: article.status as ArticleStatus,
+    status: article.status,
     is_public: article.is_public,
   };
 }
 
-export function formValuesToPayload(data: ArticleFormData) {
+export function formValuesToPayload(data: ArticleFormData): CreateArticleData {
   return {
-    title: data.title,
+    title: data.title.trim(),
     content: data.content,
-    excerpt: data.excerpt || undefined,
-    category: data.category || undefined,
-    tags: data.tags
-      ? data.tags.split(",").map((t) => t.trim()).filter(Boolean)
-      : undefined,
+    excerpt: data.excerpt?.trim() || undefined,
+    category: data.category?.trim() || undefined,
+    tags: data.tags ? data.tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
     status: data.status,
     is_public: data.is_public,
   };

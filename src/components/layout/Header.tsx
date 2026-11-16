@@ -12,6 +12,7 @@ import { useVisibleServices, AppSwitcherGrid, type ServiceKey } from "@bengo-hub
 import { AccountPanel } from "@bengo-hub/shared-ui-lib/account-panel";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import type { ServiceRole } from "@/lib/rbac/permissions";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const ROLE_LABELS: Record<ServiceRole, string> = {
   ticketing_admin: "Admin",
@@ -54,14 +55,14 @@ export function Header({ onMenuClick }: HeaderProps) {
   const name = displayName(user);
   const { role: serviceRole } = useServicePermissions(orgSlug);
   const role = serviceRole ? ROLE_LABELS[serviceRole] : "";
-  // The App Store shows every real service to every authenticated user in the tenant — each
+  // The App Store shows every real service to every authenticated user in the tenant. Each
   // destination service already enforces its own RBAC + subscription gating on arrival, so
   // pre-filtering the directory here just hid apps that were actually reachable.
   const services = useVisibleServices({ orgSlug, urls: SERVICE_URLS, canManageLinks: true });
 
   return (
-    <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between">
-      <div className="flex items-center gap-4 flex-1">
+    <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-4 flex-1">
         <button
           type="button"
           onClick={onMenuClick}
@@ -75,8 +76,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button className="relative group p-2 rounded-xl hover:bg-accent transition-all">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <ThemeToggle />
+        <button type="button" aria-label="Notifications" className="relative group p-2 rounded-xl hover:bg-accent transition-all">
           <Bell className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
         </button>
 

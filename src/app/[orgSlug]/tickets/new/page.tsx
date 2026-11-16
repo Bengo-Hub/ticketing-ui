@@ -1,32 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useCreateTicket, useCategories } from "@/hooks/useTickets";
-import { searchPublicArticles } from "@/lib/api/kb";
-import type { KBArticle } from "@/types/kb";
-import {
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Label,
-  Separator,
-  Textarea,
-} from "@/components/ui/base";
-import { orgRoute } from "@/lib/utils";
-import { ArrowLeft, BookOpen, ExternalLink, Loader2, Lightbulb } from "lucide-react";
-import Link from "next/link";
+import { BookOpen, ExternalLink, Lightbulb, Loader2, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { SearchableCombobox } from "@bengo-hub/shared-ui-lib/combobox";
+import { RichTextEditor } from "@bengo-hub/shared-ui-lib/rich-text-editor";
+import { useDebouncedValue } from "@bengo-hub/shared-ui-lib/search";
+import { useSearchQuery } from "@bengo-hub/shared-ui-lib/search/query";
+import { useCreateTicket } from "@/hooks/useTickets";
+import { useCategories } from "@/hooks/useCategories";
+import { useServicePermissions } from "@/hooks/useServicePermissions";
+import { searchPublicArticles } from "@/lib/api/kb";
+import { CHANNEL_OPTIONS, PRIORITY_OPTIONS } from "@/lib/ticket-options";
+import { PageHeader } from "@/components/common/page-header";
+import { Field } from "@/components/common/field";
+import { toPlainText } from "@/components/common/rich-text";
+import { Button, Card, CardContent, Input } from "@/components/ui/base";
+import { orgRoute } from "@/lib/utils";
 
 const schema = z.object({
-  subject: z.string().min(5, "Subject must be at least 5 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  subject: z.string().trim().min(5, "Subject must be at least 5 characters"),
+  description: z.string().refine((v) => toPlainText(v).length >= 10, "Description must be at least 10 characters"),
   priority: z.enum(["low", "normal", "high", "urgent", "critical"]),
-  channel: z.enum(["web", "email", "api", "chat", "phone", "internal"]),
+  channel: z.enum(["web", "email", "api", "chat", "whatsapp", "phone", "internal"]),
   category_id: z.string().optional(),
 });
 
@@ -36,104 +37,70 @@ export default function NewTicketPage() {
   const params = useParams();
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
-
-  const { data: categoriesData } = useCategories(orgSlug);
-  const categories = categoriesData ?? [];
+  const { isStaff } = useServicePermissions(orgSlug);
+  const { data: categories = [] } = useCategories(orgSlug);
   const createTicket = useCreateTicket(orgSlug);
-
-  // KB deflection state
-  const [kbSuggestions, setKbSuggestions] = useState<KBArticle[]>([]);
-  const [kbLoading, setKbLoading] = useState(false);
   const [deflectionDismissed, setDeflectionDismissed] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { priority: "normal", channel: "web" },
+    defaultValues: { subject: "", description: "", priority: "normal", channel: "web", category_id: "" },
   });
 
-  const subject = watch("subject");
+  // Knowledge base deflection: the subject is searched once typing pauses, older requests are aborted.
+  const subjectTerm = useDebouncedValue((watch("subject") ?? "").trim());
+  const suggestions = useSearchQuery({
+    queryKey: ["kb", "deflection", orgSlug],
+    term: subjectTerm.length >= 5 ? subjectTerm : "",
+    allowEmpty: false,
+    enabled: !deflectionDismissed,
+    fetcher: (term, signal) => searchPublicArticles(orgSlug, term, 3, signal),
+  });
+  const kbSuggestions = subjectTerm.length >= 5 ? (suggestions.data ?? []) : [];
+  const showDeflection = !deflectionDismissed && (suggestions.isFetching || kbSuggestions.length > 0);
 
-  const fetchSuggestions = useCallback(
-    async (query: string) => {
-      if (query.length < 5) {
-        setKbSuggestions([]);
-        return;
-      }
-      setKbLoading(true);
-      try {
-        const results = await searchPublicArticles(orgSlug, query, 3);
-        setKbSuggestions(results);
-      } catch {
-        // silently ignore — KB deflection is non-critical
-      } finally {
-        setKbLoading(false);
-      }
-    },
-    [orgSlug],
-  );
-
-  useEffect(() => {
-    if (deflectionDismissed) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => void fetchSuggestions(subject ?? ""), 500);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [subject, fetchSuggestions, deflectionDismissed]);
+  const categoryOptions = categories.filter((c) => c.is_active).map((c) => ({ value: c.id, label: c.name }));
 
   const onSubmit = async (data: FormData) => {
     try {
       const ticket = await createTicket.mutateAsync({
-        subject: data.subject,
+        subject: data.subject.trim(),
         description: data.description,
         priority: data.priority,
         channel: data.channel,
         category_id: data.category_id || undefined,
       });
-      toast.success("Ticket created successfully");
+      toast.success("Ticket created");
       router.push(orgRoute(orgSlug, `/tickets/${ticket.id}`));
     } catch {
-      toast.error("Failed to create ticket. Please try again.");
+      toast.error("The ticket could not be created. Please try again.");
     }
   };
 
-  const showDeflection =
-    !deflectionDismissed && (kbLoading || kbSuggestions.length > 0);
+  const submitting = isSubmitting || createTicket.isPending;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Link
-        href={orgRoute(orgSlug, "/tickets")}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Tickets
-      </Link>
+    <div className="mx-auto max-w-3xl space-y-4">
+      <PageHeader
+        back={{ href: orgRoute(orgSlug, "/tickets"), label: "Tickets" }}
+        icon={PlusCircle}
+        title="New ticket"
+        subtitle="Describe the issue and it will be routed to the right team."
+      />
 
-      <div>
-        <h1 className="text-2xl font-black text-foreground">Create New Ticket</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Describe the issue and we&apos;ll get it assigned to the right team.
-        </p>
-      </div>
-
-      {/* KB Deflection Panel */}
       {showDeflection && (
         <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lightbulb className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">
-                  Related articles that might help
-                </p>
-              </div>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <Lightbulb className="h-4 w-4 text-primary" /> Articles that might help
+              </p>
               <button
                 type="button"
                 onClick={() => setDeflectionDismissed(true)}
@@ -142,10 +109,10 @@ export default function NewTicketPage() {
                 Dismiss
               </button>
             </div>
-            {kbLoading ? (
+            {suggestions.isFetching && kbSuggestions.length === 0 ? (
               <div className="space-y-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-8 rounded-lg bg-muted/50 animate-pulse" />
+                  <div key={i} className="h-8 animate-pulse rounded-lg bg-muted/50" />
                 ))}
               </div>
             ) : (
@@ -155,118 +122,102 @@ export default function NewTicketPage() {
                     key={article.id}
                     href={orgRoute(orgSlug, `/kb/${article.slug}`)}
                     target="_blank"
-                    className="flex items-center justify-between gap-3 rounded-lg bg-background border border-border px-3 py-2 hover:border-primary/50 hover:bg-primary/5 transition-colors group"
+                    className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 transition-colors hover:border-primary/50"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {article.title}
-                      </p>
-                    </div>
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
+                    <span className="flex min-w-0 items-center gap-2">
+                      <BookOpen className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span className="truncate text-sm font-medium">{article.title}</span>
+                    </span>
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />
                   </Link>
                 ))}
               </div>
             )}
-            <Separator />
-            <p className="text-xs text-muted-foreground">
-              If none of these help, submit your ticket below.
-            </p>
+            <p className="text-xs text-muted-foreground">If none of these help, submit the ticket below.</p>
           </CardContent>
         </Card>
       )}
 
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject *</Label>
-              <Input
-                id="subject"
-                placeholder="Brief description of the issue"
-                {...register("subject")}
+            <Field label="Subject" htmlFor="subject" required error={errors.subject?.message}>
+              <Input id="subject" placeholder="A short summary of the issue" {...register("subject")} />
+            </Field>
+
+            <Field label="Description" required error={errors.description?.message}>
+              <Controller
+                control={control}
+                name="description"
+                render={({ field }) => (
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="What happened, what you expected, and any steps to reproduce it"
+                    ariaLabel="Description"
+                  />
+                )}
               />
-              {errors.subject && (
-                <p className="text-xs text-destructive">{errors.subject.message}</p>
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Priority">
+                <Controller
+                  control={control}
+                  name="priority"
+                  render={({ field }) => (
+                    <SearchableCombobox
+                      options={PRIORITY_OPTIONS}
+                      value={field.value}
+                      onChange={(v) => v && field.onChange(v)}
+                      clearable={false}
+                      searchPlaceholder="Priority"
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="Category">
+                <Controller
+                  control={control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <SearchableCombobox
+                      options={categoryOptions}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="No category"
+                      searchPlaceholder="Category"
+                      emptyText="No categories"
+                    />
+                  )}
+                />
+              </Field>
+              {isStaff && (
+                <Field label="Channel" hint="How the customer reached you.">
+                  <Controller
+                    control={control}
+                    name="channel"
+                    render={({ field }) => (
+                      <SearchableCombobox
+                        options={CHANNEL_OPTIONS}
+                        value={field.value}
+                        onChange={(v) => v && field.onChange(v)}
+                        clearable={false}
+                        searchPlaceholder="Channel"
+                      />
+                    )}
+                  />
+                </Field>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Provide detailed information about the issue..."
-                rows={6}
-                {...register("description")}
-              />
-              {errors.description && (
-                <p className="text-xs text-destructive">{errors.description.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <select
-                  id="priority"
-                  {...register("priority")}
-                  className="h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="channel">Channel</Label>
-                <select
-                  id="channel"
-                  {...register("channel")}
-                  className="h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="web">Web</option>
-                  <option value="email">Email</option>
-                  <option value="chat">Chat</option>
-                  <option value="phone">Phone</option>
-                  <option value="internal">Internal</option>
-                </select>
-              </div>
-            </div>
-
-            {categories.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="category_id">Category</Label>
-                <select
-                  id="category_id"
-                  {...register("category_id")}
-                  className="h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">No category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push(orgRoute(orgSlug, "/tickets"))}
-              >
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => router.push(orgRoute(orgSlug, "/tickets"))}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || createTicket.isPending}>
-                {(isSubmitting || createTicket.isPending) && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                Create Ticket
+              <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create ticket
               </Button>
             </div>
           </form>

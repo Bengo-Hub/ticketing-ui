@@ -10,8 +10,18 @@ import type {
   UpdateTeamData,
 } from "@/types/agents";
 
-export async function getAgents(tenantSlug: string): Promise<AgentListResponse> {
-  const { data } = await api.get<AgentListResponse>(`api/v1/${tenantSlug}/agents`);
+/** Query parameters GET /{tenant}/agents and /teams read. The API caps `limit` at 100. */
+export interface DirectoryListParams {
+  page?: number;
+  limit?: number;
+  teamId?: string;
+  status?: string;
+  role?: string;
+  active?: boolean;
+}
+
+export async function getAgents(tenantSlug: string, params: DirectoryListParams = {}): Promise<AgentListResponse> {
+  const { data } = await api.get<AgentListResponse>(`api/v1/${tenantSlug}/agents`, { params });
   return data;
 }
 
@@ -37,8 +47,11 @@ export async function deleteAgent(tenantSlug: string, id: string): Promise<void>
   await api.delete(`api/v1/${tenantSlug}/agents/${id}`);
 }
 
-export async function getTeams(tenantSlug: string): Promise<TeamListResponse> {
-  const { data } = await api.get<TeamListResponse>(`api/v1/${tenantSlug}/teams`);
+export async function getTeams(
+  tenantSlug: string,
+  params: Pick<DirectoryListParams, "page" | "limit" | "active"> = {},
+): Promise<TeamListResponse> {
+  const { data } = await api.get<TeamListResponse>(`api/v1/${tenantSlug}/teams`, { params });
   return data;
 }
 

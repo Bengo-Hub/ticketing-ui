@@ -63,14 +63,11 @@ export interface TicketComment {
   updated_at: string;
 }
 
-export interface TicketStats {
-  total: number;
-  open: number;
-  in_progress: number;
-  pending: number;
-  resolved_today: number;
-  overdue: number;
-}
+/**
+ * GET /{tenant}/tickets/stats answers `{ "stats": { "<status>": count } }`, all-time counts per
+ * status. Statuses with no tickets may be absent.
+ */
+export type TicketStats = Partial<Record<TicketStatus, number>>;
 
 export interface Category {
   id: string;
@@ -84,6 +81,23 @@ export interface Category {
   metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateCategoryData {
+  name: string;
+  description?: string;
+  parent_id?: string;
+  icon?: string;
+  sort_order?: number;
+}
+
+export interface UpdateCategoryData {
+  name?: string;
+  description?: string;
+  parent_id?: string;
+  icon?: string;
+  sort_order?: number;
+  is_active?: boolean;
 }
 
 /** Query parameters of GET /{tenant}/tickets, named as the API reads them. */

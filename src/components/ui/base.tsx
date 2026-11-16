@@ -177,7 +177,6 @@ Separator.displayName = "Separator";
 
 export {
   Button,
-  buttonVariants,
   Card,
   CardHeader,
   CardTitle,
@@ -187,6 +186,5 @@ export {
   Textarea,
   Label,
   Badge,
-  badgeVariants,
   Separator,
 };
