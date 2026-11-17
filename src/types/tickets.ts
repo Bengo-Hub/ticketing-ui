@@ -74,8 +74,23 @@ export interface TicketComment {
   /** Agent ids the comment @mentions (staff comments only). */
   mentions?: string[];
   metadata?: Record<string, unknown>;
+  /**
+   * Set on a customer message that came in on a channel (read by the API from the comment
+   * metadata): the channel, the message id there, who wrote it and, for email, its subject.
+   */
+  channel?: TicketChannel;
+  external_id?: string;
+  sender?: CommentSender;
+  email_subject?: string;
   created_at: string;
   updated_at: string;
+}
+
+/** Who wrote a channel message: the requester, or a colleague of theirs on a threaded email. */
+export interface CommentSender {
+  name?: string;
+  email?: string;
+  phone?: string;
 }
 
 /** A file on a ticket. The file itself is fetched through a short-lived signed link. */

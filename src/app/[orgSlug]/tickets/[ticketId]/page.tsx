@@ -202,6 +202,8 @@ export default function TicketDetailPage() {
           <TicketConversation
             ticket={ticket}
             comments={comments}
+            replyEmail={requesterEmail}
+            showDelivery={isStaff}
             loading={commentsQuery.isLoading}
             hasMore={!!commentsQuery.hasNextPage}
             loadingMore={commentsQuery.isFetchingNextPage}

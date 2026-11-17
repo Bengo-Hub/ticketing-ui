@@ -41,6 +41,7 @@ export function WhatsAppChannel({ orgSlug, settings }: { orgSlug: string; settin
           onChange={(next) => void onChange(next)}
           disabled={update.isPending}
         />
+        <p className="mt-3 text-xs text-muted-foreground">{t("settings.whatsapp.convertNote")}</p>
       </CardContent>
     </Card>
   );
