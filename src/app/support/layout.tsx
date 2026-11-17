@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
 import { QueryClientWrapper } from "@/providers/query-client-wrapper";
-import { SupportHeader } from "@/components/support/support-header";
 
 export const metadata: Metadata = {
   title: "Customer Support",
   description: "Submit a support request or track your existing tickets.",
 };
 
+/**
+ * Shared by every public support route. The full pages add their header in (site)/layout.tsx;
+ * the embeddable widget at /support/widget has its own compact frame.
+ */
 export default function SupportLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <QueryClientWrapper>
-      <div className="min-h-dvh overflow-x-hidden bg-muted/40">
-        <SupportHeader />
-        <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8">{children}</main>
-      </div>
-    </QueryClientWrapper>
-  );
+  return <QueryClientWrapper>{children}</QueryClientWrapper>;
 }

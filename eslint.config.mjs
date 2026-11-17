@@ -7,7 +7,7 @@ import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 const eslintConfig = [
   ...nextCoreWebVitals,
   { settings: { react: { version: "19.2" } } },
-  { ignores: [".next/**", "node_modules/**", "public/sw.js"] },
+  { ignores: [".next/**", "node_modules/**", "public/sw.js", "public/widget.js"] },
 ];
 
 export default eslintConfig;

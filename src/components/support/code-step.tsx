@@ -33,6 +33,7 @@ export function CodeStep({
   onSubmit,
   onResend,
   onChangeDetails,
+  compact = false,
 }: {
   email: string;
   notice?: string | null;
@@ -45,13 +46,15 @@ export function CodeStep({
   onSubmit: (e: React.FormEvent) => void;
   onResend: () => void;
   onChangeDetails: () => void;
+  /** The widget's layout: no card frame and no side padding. */
+  compact?: boolean;
 }) {
   const { t } = useT();
   const [before, after] = t("support.codeSent", { email: "\u0000" }).split("\u0000");
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("support.checkEmail")}</CardTitle>
+    <Card className={compact ? "border-0 bg-transparent shadow-none" : undefined}>
+      <CardHeader className={compact ? "px-0 pt-0" : undefined}>
+        <CardTitle className={compact ? "text-lg" : undefined}>{t("support.checkEmail")}</CardTitle>
         <CardDescription className="wrap-break-word">
           {notice ? `${notice} ` : ""}
           {before}
@@ -59,7 +62,7 @@ export function CodeStep({
           {after}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={compact ? "px-0 pb-0" : undefined}>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="max-w-xs space-y-1">
             <Label htmlFor="otp">{t("support.codeLabel")}</Label>

@@ -11,6 +11,7 @@ import { PERM } from "@/lib/rbac/permissions";
 import { orgRoute } from "@/lib/utils";
 import { EmailChannel } from "./email-channel";
 import { WhatsAppChannel } from "./whatsapp-channel";
+import { WidgetChannel } from "./widget-channel";
 
 export default function AdminSettingsPage() {
   const params = useParams();
@@ -18,7 +19,7 @@ export default function AdminSettingsPage() {
   const { t } = useT();
   const { can, isLoading: permsLoading } = useServicePermissions(orgSlug);
   const canManage = can(PERM.settingsManage);
-  const { data, isLoading, isError, refetch } = useChannelSettings(orgSlug, canManage);
+  const { data, isLoading, isError, isRefetching, refetch } = useChannelSettings(orgSlug, canManage);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -58,10 +59,16 @@ export default function AdminSettingsPage() {
             </Card>
           ) : (
             <>
-              <EmailChannel address={data.email?.forwarding_address ?? ""} />
+              <EmailChannel
+                address={data.email?.forwarding_address ?? ""}
+                lastReceivedAt={data.email?.last_received_at ?? null}
+                refreshing={isRefetching}
+                onRefresh={() => void refetch()}
+              />
               <WhatsAppChannel orgSlug={orgSlug} settings={data} />
             </>
           )}
+          {!permsLoading && <WidgetChannel orgSlug={orgSlug} />}
         </section>
       )}
     </div>

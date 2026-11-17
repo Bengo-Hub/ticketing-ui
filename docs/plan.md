@@ -41,9 +41,10 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 | `/admin/sla`, `/admin/routing` | `sla.view`, `routing.view` or manage | SLA policies and routing rules |
 | `/admin/sla/calendars` | `sla.view`; adding, changing and deleting need `sla.add`, `sla.change`, `sla.delete` | Business calendars: weekly hours, timezone and holidays |
 | `/admin/sla/report` | `analytics.view` | SLA compliance, averages and p90 by priority and team |
-| `/admin/settings` | `settings.manage` | Channels: the email forwarding address with auto-forward steps, and the WhatsApp auto-ticketing switch |
+| `/admin/settings` | `settings.manage` | Channels: the email forwarding address with auto-forward steps and its Waiting or Working status, the WhatsApp auto-ticketing switch, and the web widget embed snippet |
 | `/[orgSlug]/unauthorized` | everyone | Permission refusal |
 | `/support`, `/support/track`, `/support/tickets/[emailToken]` | no account | Public create, track and reply with email codes |
+| `/support/widget?tenant=<slug>&theme=` | no account | The public create flow in a compact frame for `public/widget.js`; the only route any site may frame |
 
 ## Find, Flip, Fix (read 2026-11-16)
 
@@ -107,7 +108,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [7](sprints/sprint-7-realtime.md) | Real-time updates | Partial | Toasts, unread count, push, presence |
 | [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Partial | @mentions (waits on shared-ui-lib v0.1.147), comment author names, keyset paging on the agents, teams and KB lists, offline inbox and queued replies, app shell, Playwright tests |
 | [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Partial | Calendars, policy settings, the SLA report and the paused clock are written but not yet built or tested; sort by SLA, escalation level on rows and the fresh-tenant test remain |
-| [10](sprints/sprint-10-channels.md) | Channels | Partial | The settings page (forwarding address and WhatsApp switch) is written but not yet built or tested; the forwarding verify step waits on the API, and channel views, the WhatsApp composer and the widget remain |
+| [10](sprints/sprint-10-channels.md) | Channels | Partial | Settings with the forwarding status, the channel badge and filter, the WhatsApp window in the composer and the web widget are written but not yet built or tested; WhatsApp templates, threaded channel rendering and the notifications inbox note remain |
 | [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Pending | Rollup-backed dashboard, CSAT, leaderboard, export |
 | [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Pending | Suggested reply, summary, KB suggestions, deflection, public KB |
 
@@ -124,6 +125,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | `tickets/handler.go` and `identity/handler.go` in ticketing-api are over 400 lines | API | API sprint 9 |
 | Comments page oldest first only, so a long thread opens at its start rather than its latest reply | API | Open |
 | The ticket list filters by one status at a time, so the agent queue tabs split loaded tickets in the browser | API | Open |
+| No route other than `/support/widget` sent a framing header, and neither does the ingress, so any site could frame the signed-in app | UI | Fixed 2026-11-17: every other route sends `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` (next.config.ts) |
 | Turbopack on Windows refuses the shared-ui-lib `@source` path through the pnpm junction, so local verification uses `next build --webpack` while CI builds with Turbopack on Linux | UI | Open |
 
 ## Environment

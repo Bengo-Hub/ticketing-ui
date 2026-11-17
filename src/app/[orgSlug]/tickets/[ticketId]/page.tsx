@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/base";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
+import { ChannelBadge } from "@/components/tickets/ChannelBadge";
 import { SLASidebar } from "@/components/tickets/SLASidebar";
 import { TicketConversation } from "@/components/tickets/TicketConversation";
 import { ReplyComposer } from "@/components/tickets/ReplyComposer";
@@ -118,6 +119,16 @@ export default function TicketDetailPage() {
   const mergedIntoNumber = typeof meta.merged_into_number === "string" ? meta.merged_into_number : "";
   const canMerge = staffDesk && canChange && !mergedInto && ticket.status !== "closed" && ticket.status !== "cancelled";
   const canSeeFiles = can(PERM.attachmentsView, PERM.attachmentsViewOwn);
+  // Staff replying on a WhatsApp ticket see the 24-hour window; the requester's email (or the
+  // legacy customer_email of older tickets) is where a reply still goes once it has closed.
+  const requesterEmail =
+    (typeof meta.requester_email === "string" && meta.requester_email) ||
+    (typeof meta.customer_email === "string" && meta.customer_email) ||
+    "";
+  const whatsapp =
+    isStaff && ticket.channel === "whatsapp"
+      ? { windowExpiresAt: ticket.whatsapp_window_expires_at ?? null, hasEmail: !!requesterEmail }
+      : undefined;
 
   const onDelete = async () => {
     try {
@@ -139,6 +150,7 @@ export default function TicketDetailPage() {
             <span className="font-mono text-xs font-semibold">#{ticket.ticket_number}</span>
             <TicketStatusBadge status={ticket.status} />
             <PriorityBadge priority={ticket.priority} />
+            <ChannelBadge channel={ticket.channel} />
             <SLAStatusBadge ticket={ticket} />
           </span>
         }
@@ -202,6 +214,7 @@ export default function TicketDetailPage() {
               allowInternal={isStaff}
               allowMacros={staffDesk && canChange}
               allowAttachments={can(PERM.attachmentsAdd)}
+              whatsapp={whatsapp}
               onTypingChange={staffDesk ? presence.setTyping : undefined}
             />
           )}

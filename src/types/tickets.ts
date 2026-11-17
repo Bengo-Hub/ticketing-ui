@@ -54,6 +54,11 @@ export interface Ticket {
   escalated_at?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
+  /**
+   * When the WhatsApp 24-hour customer service window closes (RFC3339): 24 hours after the
+   * customer's last WhatsApp message. Null when the ticket has no inbound WhatsApp message.
+   */
+  whatsapp_window_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }

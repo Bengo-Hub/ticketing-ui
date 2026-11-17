@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
@@ -15,16 +15,21 @@ import { toPlainText } from "@/components/common/rich-text";
 import { CodeStep, supportError } from "@/components/support/code-step";
 import { useT } from "@/hooks/useT";
 import type { Translate } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 /**
- * Public support form. A ticket belongs to one organisation, so the page needs its slug: from
- * the link (/support?org=<slug>, `tenant` also accepted) or typed by the visitor, and checked
- * against auth-api before any code is sent. The visitor's email is then proved with a six-digit
- * code, and the one-use token from that code opens the ticket in ticketing-api.
+ * The public create-ticket flow, shared by the support page and the embeddable widget. A ticket
+ * belongs to one organisation, so the flow needs its slug: from the link (?org=<slug>, `tenant`
+ * also accepted) or typed by the visitor, and checked against auth-api before any code is sent.
+ * The visitor's email is then proved with a six-digit code, and the one-use token from that code
+ * opens the ticket in ticketing-api.
  *
  * The description is written in the shared RichTextEditor and stored as HTML, like tickets raised
  * from the signed-in app. ticketing-api caps the stored value at 5,000 characters.
+ *
+ * `compact` is the widget's layout: no card frame, tighter spacing, and the tracking links open
+ * the full support site in a new tab instead of navigating inside the iframe.
  */
 
 const DESCRIPTION_MAX = 5000;
@@ -47,18 +52,16 @@ type Step = "details" | "code" | "done";
 
 const RESEND_SECONDS = 45;
 
-export default function SupportPage() {
-  return (
-    <Suspense fallback={null}>
-      <SupportForm />
-    </Suspense>
-  );
-}
-
-function SupportForm() {
+/** Must sit inside a Suspense boundary, as it reads the search params. */
+export function CreateTicketForm({ compact = false }: { compact?: boolean }) {
   const { t } = useT();
   const params = useSearchParams();
   const linkedSlug = (params.get("org") || params.get("tenant") || "").trim().toLowerCase();
+  // Inside the widget the tracking page opens as the full site in a new tab.
+  const linkProps = compact ? { target: "_blank", rel: "noopener noreferrer" } : {};
+  const frame = compact ? "border-0 bg-transparent shadow-none" : "";
+  const headerPad = compact ? "px-0 pt-0" : "";
+  const contentPad = compact ? "px-0 pb-0" : "";
 
   // The organisation named in the link, shown by name and not asked for again.
   const linked = useQuery({
@@ -160,8 +163,8 @@ function SupportForm() {
   if (step === "done") {
     const email = details?.email ?? "";
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+      <Card className={frame}>
+        <CardContent className={cn("flex flex-col items-center gap-4 text-center", compact ? "px-0 py-8" : "py-12")}>
           <CheckCircle2 className="h-12 w-12 text-green-500" />
           <div role="status" className="min-w-0">
             <h2 className="text-xl font-semibold">{t("support.submitted")}</h2>
@@ -179,6 +182,7 @@ function SupportForm() {
               <Button asChild>
                 <Link
                   href={`/support/track?org=${encodeURIComponent(tenant.slug)}&ticket=${encodeURIComponent(ticketNumber)}`}
+                  {...linkProps}
                 >
                   {t("support.trackThis")}
                 </Link>
@@ -209,6 +213,7 @@ function SupportForm() {
           setError(null);
           setStep("details");
         }}
+        compact={compact}
       />
     );
   }
@@ -216,17 +221,17 @@ function SupportForm() {
   const showOrgField = !linkedSlug || (!linked.isLoading && !linkedTenant);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <Card className={frame}>
+      <CardHeader className={headerPad}>
+        <CardTitle className={compact ? "text-lg" : undefined}>
           {linkedTenant
             ? t("support.newTitleOrg", { org: linkedTenant.orgName || linkedTenant.name })
             : t("support.newTitle")}
         </CardTitle>
         <CardDescription>{t("support.newIntro")}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={onDetails} className="space-y-4" noValidate>
+      <CardContent className={contentPad}>
+        <form onSubmit={onDetails} className={compact ? "space-y-3" : "space-y-4"} noValidate>
           {linkedSlug && linked.isLoading && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> {t("support.loadingOrg")}
@@ -243,7 +248,7 @@ function SupportForm() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className={cn("grid grid-cols-1 gap-4", !compact && "sm:grid-cols-2", compact && "gap-3")}>
             <div className="min-w-0 space-y-1">
               <Label htmlFor="name">{t("support.name")}</Label>
               <Input id="name" autoComplete="name" {...register("name")} placeholder={t("support.namePlaceholder")} />
@@ -307,6 +312,7 @@ function SupportForm() {
             <Link
               href={linkedSlug ? `/support/track?org=${encodeURIComponent(linkedSlug)}` : "/support/track"}
               className="font-medium text-primary hover:underline"
+              {...linkProps}
             >
               {t("support.trackIt")}
             </Link>

@@ -15,7 +15,10 @@
     "form": "Form",
     "save": "Save",
     "saveChanges": "Save changes",
-    "somethingWrong": "Something went wrong. Please try again."
+    "somethingWrong": "Something went wrong. Please try again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Could not copy. Select the text and copy it by hand."
   },
   "shell": {
     "openMenu": "Open menu",
@@ -103,7 +106,8 @@
     "minutes": "{m}m",
     "dayShort": "{n}d",
     "hourShort": "{n}h",
-    "minuteShort": "{n}m"
+    "minuteShort": "{n}m",
+    "lessThanMinute": "under a minute"
   },
   "tickets": {
     "title": "Tickets",
@@ -199,7 +203,16 @@
     "noteAdded": "Internal note added",
     "replyFailed": "The reply could not be sent.",
     "noteFailed": "The note could not be saved.",
-    "laterReplies": "Show later replies"
+    "laterReplies": "Show later replies",
+    "whatsapp": {
+      "open": "WhatsApp window open.",
+      "closesIn": "Closes in {left}, at {at}. Replies until then go to the customer on WhatsApp.",
+      "closesAt": "The WhatsApp window closes at {at}.",
+      "closedAt": "The 24-hour WhatsApp window closed at {at}.",
+      "notOpen": "The 24-hour WhatsApp window is not open.",
+      "closedEmail": "A free-form reply will not reach WhatsApp now. It still goes to the customer by email.",
+      "closedNoEmail": "A free-form reply will not reach WhatsApp now, and this customer has no email address. They will see it only once they message you again."
+    }
   },
   "list": {
     "loadMore": "Load more",
@@ -710,18 +723,23 @@
     "subtitle": "How customers reach your support team.",
     "noAccess": "You do not have permission to change ticketing settings.",
     "channels": "Channels",
-    "channelsHint": "Choose how customer emails and WhatsApp messages reach your tickets.",
+    "channelsHint": "Choose how customer emails, WhatsApp messages and your website's help button reach your tickets.",
     "loadFailed": "We could not load the channel settings.",
     "email": {
       "title": "Email",
       "intro": "Forward your support mailbox to this address, and customer emails arrive here as tickets.",
+      "introDirect": "Customer emails to this mailbox arrive here as tickets. It receives mail directly, so there is nothing to forward.",
       "addressLabel": "Forwarding address",
-      "copy": "Copy",
-      "copiedShort": "Copied",
+      "mailboxLabel": "Support mailbox",
       "copyAria": "Copy the forwarding address",
       "copied": "Address copied",
-      "copyFailed": "Could not copy. Select the address and copy it by hand.",
       "notConfigured": "Email intake is not available for this workspace yet.",
+      "waiting": "Waiting for your first forwarded email",
+      "waitingHint": "Once forwarding is set up, send a test email to your support mailbox. When it arrives as a ticket, this shows Working. Select Refresh to check.",
+      "waitingDirect": "Send a test email to {address}. When it arrives as a ticket, this shows Working. Select Refresh to check.",
+      "working": "Working",
+      "lastReceived": "Last forwarded email {when} ({at}).",
+      "refresh": "Refresh",
       "howTo": "Set up an auto-forward from your support mailbox",
       "gmailTitle": "Gmail or Google Workspace",
       "gmail1": "On a computer, open Gmail, select Settings and then See all settings.",
@@ -748,6 +766,22 @@
       "autoTicketOff": "Off: only messages on an already open ticket are added.",
       "saved": "WhatsApp setting saved.",
       "saveFailed": "The setting could not be saved. Please try again."
+    },
+    "widget": {
+      "title": "Web widget",
+      "intro": "Add a help button to your own website. Visitors open a small form, confirm their email with a code and send you a ticket without leaving the page.",
+      "snippetLabel": "Embed code",
+      "copyAria": "Copy the embed code",
+      "copied": "Embed code copied",
+      "step1": "Copy the embed code.",
+      "step2": "Paste it into your website's HTML just before the closing </body> tag, on every page that should show the button. On WordPress, Wix or Shopify, use the theme's custom code or footer scripts setting.",
+      "step3": "Publish the page. A round help button appears in the bottom corner.",
+      "optionsTitle": "Optional settings on the script tag",
+      "optionTheme": "data-theme=\"light\" or \"dark\" fixes the colours. Without it the form follows the visitor's device.",
+      "optionPosition": "data-position=\"left\" puts the button on the left. It sits on the right by default.",
+      "optionLabel": "data-label=\"Need help?\" sets the button's tooltip and the name screen readers announce.",
+      "optionColor": "data-color=\"#0f766e\" sets the button colour to match your brand.",
+      "preview": "Open the widget form in a new tab"
     }
   }
 }

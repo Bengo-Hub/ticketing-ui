@@ -6,6 +6,7 @@ import type { DataTableColumn } from "@bengo-hub/shared-ui-lib/data-table";
 import { TicketStatusBadge } from "@/components/tickets/TicketStatusBadge";
 import { PriorityBadge } from "@/components/tickets/PriorityBadge";
 import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
+import { ChannelBadge } from "@/components/tickets/ChannelBadge";
 import type { TicketLabels } from "@/lib/ticket-options";
 import type { Translate } from "@/lib/i18n";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
@@ -38,7 +39,11 @@ export function buildTicketColumns({ agentName, categoryName, labels, t }: Ticke
       render: (row) => (
         <div className="min-w-0 max-w-md">
           <p className="truncate font-medium text-foreground">{row.subject}</p>
-          <p className="font-mono text-[11px] text-muted-foreground md:hidden">#{row.ticket_number}</p>
+          <p className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground lg:hidden">
+            {/* Below lg the channel column is hidden, so the row keeps the channel as an icon. */}
+            <ChannelBadge channel={row.channel} iconOnly className="font-sans" />
+            <span className="md:hidden">#{row.ticket_number}</span>
+          </p>
           {categoryName?.(row.category_id) && (
             <p className="hidden truncate text-xs text-muted-foreground md:block">{categoryName(row.category_id)}</p>
           )}
@@ -71,6 +76,7 @@ export function buildTicketColumns({ agentName, categoryName, labels, t }: Ticke
       header: t("tickets.colChannel"),
       hideBelow: "lg",
       accessor: (row) => labels.channel(row.channel),
+      render: (row) => <ChannelBadge channel={row.channel} />,
     },
     {
       key: "assignee",

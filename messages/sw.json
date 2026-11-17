@@ -15,7 +15,10 @@
     "form": "Fomu",
     "save": "Hifadhi",
     "saveChanges": "Hifadhi mabadiliko",
-    "somethingWrong": "Kuna hitilafu imetokea. Tafadhali jaribu tena."
+    "somethingWrong": "Kuna hitilafu imetokea. Tafadhali jaribu tena.",
+    "copy": "Nakili",
+    "copied": "Imenakiliwa",
+    "copyFailed": "Imeshindwa kunakili. Chagua maandishi kisha uyanakili mwenyewe."
   },
   "shell": {
     "openMenu": "Fungua menyu",
@@ -103,7 +106,8 @@
     "minutes": "dak {m}",
     "dayShort": "siku {n}",
     "hourShort": "saa {n}",
-    "minuteShort": "dak {n}"
+    "minuteShort": "dak {n}",
+    "lessThanMinute": "chini ya dakika moja"
   },
   "tickets": {
     "title": "Tiketi",
@@ -199,7 +203,16 @@
     "noteAdded": "Dokezo la ndani limeongezwa",
     "replyFailed": "Jibu halikuweza kutumwa.",
     "noteFailed": "Dokezo halikuweza kuhifadhiwa.",
-    "laterReplies": "Onyesha majibu yaliyofuata"
+    "laterReplies": "Onyesha majibu yaliyofuata",
+    "whatsapp": {
+      "open": "Dirisha la WhatsApp liko wazi.",
+      "closesIn": "Litafungwa baada ya {left}, saa {at}. Hadi wakati huo majibu yanamfikia mteja kwenye WhatsApp.",
+      "closesAt": "Dirisha la WhatsApp litafungwa {at}.",
+      "closedAt": "Dirisha la saa 24 la WhatsApp lilifungwa {at}.",
+      "notOpen": "Dirisha la saa 24 la WhatsApp haliko wazi.",
+      "closedEmail": "Jibu la kawaida halitafika kwenye WhatsApp sasa. Bado litamfikia mteja kwa barua pepe.",
+      "closedNoEmail": "Jibu la kawaida halitafika kwenye WhatsApp sasa, na mteja huyu hana anwani ya barua pepe. Ataliona tu akikutumia ujumbe tena."
+    }
   },
   "list": {
     "loadMore": "Pakia zaidi",
@@ -710,18 +723,23 @@
     "subtitle": "Jinsi wateja wanavyofikia timu yako ya huduma.",
     "noAccess": "Huna ruhusa ya kubadilisha mipangilio ya tiketi.",
     "channels": "Njia za mawasiliano",
-    "channelsHint": "Chagua jinsi barua pepe na jumbe za WhatsApp za wateja zinavyofika kwenye tiketi zako.",
+    "channelsHint": "Chagua jinsi barua pepe, jumbe za WhatsApp za wateja na kitufe cha msaada kwenye tovuti yako vinavyofika kwenye tiketi zako.",
     "loadFailed": "Hatukuweza kupakia mipangilio ya njia za mawasiliano.",
     "email": {
       "title": "Barua pepe",
       "intro": "Elekeza barua za sanduku lako la huduma kwenye anwani hii, na barua pepe za wateja zitafika hapa kama tiketi.",
+      "introDirect": "Barua pepe za wateja zinazotumwa kwenye sanduku hili zinafika hapa kama tiketi. Sanduku hili linapokea barua moja kwa moja, kwa hivyo hakuna cha kuelekeza.",
       "addressLabel": "Anwani ya kuelekeza barua",
-      "copy": "Nakili",
-      "copiedShort": "Imenakiliwa",
+      "mailboxLabel": "Sanduku la barua la huduma",
       "copyAria": "Nakili anwani ya kuelekeza barua",
       "copied": "Anwani imenakiliwa",
-      "copyFailed": "Imeshindwa kunakili. Chagua anwani kisha uinakili mwenyewe.",
       "notConfigured": "Kupokea barua pepe bado hakupatikani kwa eneo hili la kazi.",
+      "waiting": "Tunasubiri barua pepe yako ya kwanza iliyoelekezwa",
+      "waitingHint": "Ukishaweka uelekezaji, tuma barua pepe ya majaribio kwenye sanduku lako la barua la huduma. Ikifika kama tiketi, hapa patasema Inafanya kazi. Chagua Onyesha upya ili kuangalia.",
+      "waitingDirect": "Tuma barua pepe ya majaribio kwa {address}. Ikifika kama tiketi, hapa patasema Inafanya kazi. Chagua Onyesha upya ili kuangalia.",
+      "working": "Inafanya kazi",
+      "lastReceived": "Barua pepe ya mwisho iliyoelekezwa ilifika {when} ({at}).",
+      "refresh": "Onyesha upya",
       "howTo": "Weka uelekezaji wa moja kwa moja kutoka kwa sanduku lako la barua la huduma",
       "gmailTitle": "Gmail au Google Workspace",
       "gmail1": "Kwenye kompyuta, fungua Gmail, chagua Settings kisha See all settings.",
@@ -748,6 +766,22 @@
       "autoTicketOff": "Imezimwa: ni jumbe za tiketi ambayo tayari iko wazi pekee zinazoongezwa.",
       "saved": "Mpangilio wa WhatsApp umehifadhiwa.",
       "saveFailed": "Mpangilio haukuweza kuhifadhiwa. Tafadhali jaribu tena."
+    },
+    "widget": {
+      "title": "Fomu ya msaada kwenye tovuti",
+      "intro": "Weka kitufe cha msaada kwenye tovuti yako. Wageni hufungua fomu fupi, huthibitisha barua pepe yao kwa nambari ya uthibitisho na kukutumia tiketi bila kuondoka kwenye ukurasa.",
+      "snippetLabel": "Msimbo wa kupachika",
+      "copyAria": "Nakili msimbo wa kupachika",
+      "copied": "Msimbo wa kupachika umenakiliwa",
+      "step1": "Nakili msimbo wa kupachika.",
+      "step2": "Ubandike kwenye HTML ya tovuti yako kabla tu ya lebo ya kufunga </body>, kwenye kila ukurasa unaopaswa kuonyesha kitufe. Kwenye WordPress, Wix au Shopify, tumia mpangilio wa msimbo maalum au hati za sehemu ya chini ya mandhari.",
+      "step3": "Chapisha ukurasa. Kitufe cha msaada cha duara kitaonekana kwenye kona ya chini.",
+      "optionsTitle": "Mipangilio ya hiari kwenye lebo ya script",
+      "optionTheme": "data-theme=\"light\" au \"dark\" huweka rangi za kudumu. Bila hiyo, fomu hufuata mpangilio wa kifaa cha mgeni.",
+      "optionPosition": "data-position=\"left\" huweka kitufe upande wa kushoto. Kwa kawaida kiko upande wa kulia.",
+      "optionLabel": "data-label=\"Unahitaji msaada?\" huweka maandishi ya kidokezo cha kitufe na jina linalosomwa na visoma skrini.",
+      "optionColor": "data-color=\"#0f766e\" huweka rangi ya kitufe ilingane na chapa yako.",
+      "preview": "Fungua fomu ya msaada kwenye kichupo kipya"
     }
   }
 }

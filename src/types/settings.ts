@@ -15,9 +15,12 @@ export interface ChannelSettingsInput {
 /**
  * The GET and PUT response: the stored settings plus the email forwarding address, which the API
  * derives from the tenant slug and never stores. The address is empty when email intake is off.
+ * `last_received_at` (RFC3339) is when the last forwarded email reached the tenant, null until
+ * the first one arrives. Neither is ever sent back in a PUT body.
  */
 export interface ChannelSettings extends ChannelSettingsInput {
   email: {
     forwarding_address: string;
+    last_received_at?: string | null;
   };
 }

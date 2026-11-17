@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/base";
 import { toPlainText } from "@/components/common/rich-text";
 import { AttachmentDropzone } from "@/components/tickets/attachments/AttachmentDropzone";
 import { MacroPicker } from "@/components/tickets/MacroPicker";
+import { WhatsAppWindow } from "@/components/tickets/WhatsAppWindow";
 import { mentionItems } from "@/components/tickets/mentions";
 import { useAddComment } from "@/hooks/useTickets";
 import { useUploadAttachment } from "@/hooks/useAttachments";
@@ -31,6 +32,7 @@ export function ReplyComposer({
   allowMacros,
   allowAttachments,
   onTypingChange,
+  whatsapp,
 }: {
   orgSlug: string;
   ticketId: string;
@@ -38,6 +40,8 @@ export function ReplyComposer({
   allowMacros: boolean;
   allowAttachments: boolean;
   onTypingChange?: (typing: boolean) => void;
+  /** Set on a WhatsApp ticket for staff: the 24-hour window shows above a public reply. */
+  whatsapp?: { windowExpiresAt: string | null; hasEmail: boolean };
 }) {
   const { t } = useT();
   const { agents } = useLookups(orgSlug);
@@ -120,6 +124,12 @@ export function ReplyComposer({
         )}
         {allowMacros && <MacroPicker orgSlug={orgSlug} ticketId={ticketId} disabled={busy} />}
       </div>
+
+      {whatsapp && !internal && (
+        <div className="mb-3">
+          <WhatsAppWindow expiresAt={whatsapp.windowExpiresAt} hasEmail={whatsapp.hasEmail} />
+        </div>
+      )}
 
       <div onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
         <RichTextEditor
