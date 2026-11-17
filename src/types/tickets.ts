@@ -39,6 +39,9 @@ export interface Ticket {
   sla_response_breached: boolean;
   sla_resolution_breached: boolean;
   sla_policy_id?: string;
+  /** The SLA policy's name and the business calendar its clock counts in; no calendar name is 24x7. */
+  sla_policy_name?: string;
+  sla_calendar_name?: string;
   /** Set while a pending status stops the SLA clock; the open deadlines move when it restarts. */
   sla_paused_at?: string;
   /** Paused minutes so far, in the policy's clock. */
@@ -69,6 +72,11 @@ export interface TicketComment {
   ticket_id: string;
   author_id: string;
   author_type: AuthorType;
+  /**
+   * Who wrote it: the agent's display name, the customer's name, or "System". Absent when the
+   * API knows no name; the conversation then shows the author type.
+   */
+  author_name?: string;
   comment_type: CommentType;
   content: string;
   /** Agent ids the comment @mentions (staff comments only). */
@@ -147,8 +155,12 @@ export interface UpdateCategoryData {
   is_active?: boolean;
 }
 
-/** The two orders of the ticket list. Both page by creation time. */
-export type TicketSort = 'created_desc' | 'created_asc';
+/**
+ * The orders of the ticket list. The created orders page by creation time. `sla_due` puts the
+ * nearest open SLA target first: running clocks by due time, then tickets with no target, then
+ * paused clocks. A cursor only continues the order that issued it.
+ */
+export type TicketSort = 'created_desc' | 'created_asc' | 'sla_due';
 
 /**
  * Filters of GET /{tenant}/tickets, named as the API reads them. `tags` is a comma list the API
@@ -175,7 +187,7 @@ export interface TicketListParams extends TicketListFilters {
   cursor?: string;
 }
 
-/** Offset pagination response (github.com/Bengo-Hub/pagination Response), still used by the directory lists. */
+/** Offset pagination response (github.com/Bengo-Hub/pagination Response), still used by the lists not yet on keyset paging. */
 export interface PageResponse<T> {
   data: T[];
   total: number;

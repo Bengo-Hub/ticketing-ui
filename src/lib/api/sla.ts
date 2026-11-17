@@ -44,11 +44,6 @@ export async function getCalendars(
   return data;
 }
 
-export async function getCalendar(tenantSlug: string, id: string): Promise<BusinessCalendar> {
-  const { data } = await api.get<BusinessCalendar>(`api/v1/${tenantSlug}/sla/calendars/${id}`);
-  return data;
-}
-
 export async function createCalendar(tenantSlug: string, payload: CalendarInput): Promise<BusinessCalendar> {
   const { data } = await api.post<BusinessCalendar>(`api/v1/${tenantSlug}/sla/calendars`, payload);
   return data;

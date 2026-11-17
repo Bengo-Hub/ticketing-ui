@@ -7,29 +7,11 @@ import type {
   UpdateArticleData,
 } from "@/types/kb";
 
-// getArticles / getArticle hit the PUBLIC (no-auth) endpoints, used by the
-// public KB pages. Admin pages must use the getAdminArticles/getAdminArticle
-// below instead: the backend enforces published+public filtering server-side
-// only on the public path (ticketing-api kb/handler.go RegisterPublicRoutes).
-export async function getArticles(params: KBListParams, signal?: AbortSignal): Promise<KBListResponse> {
-  const { tenantSlug, ...rest } = params;
-  const { data } = await api.get<KBListResponse>(`api/v1/${tenantSlug}/kb/articles`, {
-    params: rest,
-    signal,
-  });
-  return data;
-}
+// Staff routes under /kb/admin (sign-in and the kb permissions, every status and visibility).
+// Reading the public knowledge base goes through lib/api/public-kb.ts, which only ever sees
+// published, public articles.
 
-/** Public article by its slug (GET /{tenant}/kb/articles/{slug}). */
-export async function getArticleBySlug(tenantSlug: string, slug: string): Promise<KBArticle> {
-  const { data } = await api.get<KBArticle>(
-    `api/v1/${tenantSlug}/kb/articles/${encodeURIComponent(slug)}`,
-  );
-  return data;
-}
-
-// getAdminArticles / getAdminArticle / create / update / delete hit the
-// staff-only /kb/admin endpoints (auth required, unrestricted status filter).
+/** One keyset page of the tenant's articles, newest first. Pass `next_cursor` back as `cursor`. */
 export async function getAdminArticles(params: KBListParams, signal?: AbortSignal): Promise<KBListResponse> {
   const { tenantSlug, ...rest } = params;
   const { data } = await api.get<KBListResponse>(`api/v1/${tenantSlug}/kb/admin/articles`, {
@@ -66,25 +48,4 @@ export async function updateArticle(
 
 export async function deleteArticle(tenantSlug: string, id: string): Promise<void> {
   await api.delete(`api/v1/${tenantSlug}/kb/admin/articles/${id}`);
-}
-
-export async function voteArticle(
-  tenantSlug: string,
-  id: string,
-  helpful: boolean,
-): Promise<void> {
-  await api.post(`api/v1/${tenantSlug}/kb/articles/${id}/vote`, { helpful });
-}
-
-export async function searchPublicArticles(
-  tenantSlug: string,
-  search: string,
-  limit = 5,
-  signal?: AbortSignal,
-): Promise<KBArticle[]> {
-  const { data } = await api.get<KBListResponse>(
-    `api/v1/${tenantSlug}/kb/articles`,
-    { params: { search, limit }, signal },
-  );
-  return data.data ?? [];
 }

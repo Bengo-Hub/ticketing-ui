@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import { Info, Shield, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
-import { useAgents, useDeleteAgent } from "@/hooks/useAgents";
+import { useAgentList, useDeleteAgent } from "@/hooks/useAgents";
+import { flattenPages } from "@/hooks/useTickets";
+import { LoadMore } from "@/components/common/load-more";
 import { useLookups } from "@/hooks/useLookups";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { PERM } from "@/lib/rbac/permissions";
@@ -25,9 +27,9 @@ export default function AgentsPage() {
   // Manual add is an admin fallback; everyone else relies on agents being created at first sign-in.
   const canAddManually = canManage && (isPlatformOwner || role === "ticketing_admin");
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
-  const { data, isLoading, isError, refetch } = useAgents(orgSlug, { page, limit });
+  // Keyset pages, newest first: recently added staff, who most need a team, show at the top.
+  const query = useAgentList(orgSlug, { limit: 25 });
+  const rows = useMemo(() => flattenPages(query.data), [query.data]);
   const { teamName, teamOptions } = useLookups(orgSlug);
   const deleteAgent = useDeleteAgent(orgSlug);
 
@@ -54,8 +56,6 @@ export default function AgentsPage() {
     [teamName, canManage],
   );
 
-  const total = data?.total ?? 0;
-
   const onRemove = async () => {
     if (!removing) return;
     try {
@@ -73,7 +73,7 @@ export default function AgentsPage() {
         back={{ href: orgRoute(orgSlug, "/admin"), label: "Admin" }}
         icon={Shield}
         title="Agents"
-        subtitle={`${total} agents`}
+        subtitle={query.hasNextPage ? `${rows.length}+ agents` : `${rows.length} agents`}
         actions={
           canAddManually ? (
             <Button variant="outline" onClick={() => openSheet(null)}>
@@ -93,28 +93,24 @@ export default function AgentsPage() {
 
       <DataTable
         columns={columns}
-        rows={data?.data ?? []}
+        rows={rows}
         rowKey={(a) => a.id}
-        loading={isLoading}
+        loading={query.isLoading}
         loadingRows={5}
-        error={isError}
-        onRetry={() => void refetch()}
+        error={query.isError}
+        onRetry={() => void query.refetch()}
         emptyText="No agents yet. Staff appear here after their first sign-in."
         onRowClick={canManage ? (a) => openSheet(a) : undefined}
         storageKey="ticketing.agents.columns"
         showExportCsv
         exportFileName="agents"
         maxBodyHeight={false}
-        page={page}
-        totalPages={Math.max(1, Math.ceil(total / limit))}
-        onPageChange={setPage}
-        total={total}
-        pageSize={limit}
-        pageSizeOptions={[10, 25, 50, 100]}
-        onPageSizeChange={(n) => {
-          setLimit(n);
-          setPage(1);
-        }}
+      />
+      <LoadMore
+        shown={rows.length}
+        hasMore={!!query.hasNextPage}
+        loading={query.isFetchingNextPage}
+        onLoadMore={() => void query.fetchNextPage()}
       />
 
       {sheetOpen && (

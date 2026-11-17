@@ -85,6 +85,15 @@ function CommentCard({ comment, delivery }: { comment: TicketComment; delivery?:
   const channel = comment.channel && MESSAGE_CHANNEL_ICON[comment.channel] ? comment.channel : undefined;
   const sender = channel ? senderText(comment.sender) : "";
   const showDelivery = !!delivery && comment.author_type === "agent" && comment.comment_type === "public";
+  // The API names the author (agent display name, customer name); the role shows beside it, or
+  // alone when no name is known.
+  const roleLabel = t(author.label);
+  const authorName = comment.author_name?.trim() || roleLabel;
+  // A channel sender named as the author keeps only their address beside the name.
+  const senderLine =
+    sender && comment.sender?.name && comment.sender.name === authorName
+      ? comment.sender.email || comment.sender.phone || ""
+      : sender;
 
   if (system) {
     return (
@@ -117,8 +126,9 @@ function CommentCard({ comment, delivery }: { comment: TicketComment; delivery?:
             <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           </span>
         )}
-        <span className="text-xs font-semibold">{t(author.label)}</span>
-        {sender && <span className="min-w-0 truncate text-xs text-muted-foreground">{sender}</span>}
+        <span className="min-w-0 truncate text-xs font-semibold">{authorName}</span>
+        {authorName !== roleLabel && <span className="text-[11px] text-muted-foreground">{roleLabel}</span>}
+        {senderLine && <span className="min-w-0 truncate text-xs text-muted-foreground">{senderLine}</span>}
         {internal && (
           <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-warning">
             <Lock className="h-3 w-3" /> {t("ticket.internalNote")}

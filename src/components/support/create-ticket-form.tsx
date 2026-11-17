@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +13,8 @@ import { createPublicTicket, sendSupportCode, verifySupportCode } from "@/lib/ap
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@/components/ui/base";
 import { toPlainText } from "@/components/common/rich-text";
 import { CodeStep, supportError } from "@/components/support/code-step";
+import { KbDeflection } from "@/components/support/kb-deflection";
+import { helpCenterHref } from "@/lib/api/public-kb";
 import { useT } from "@/hooks/useT";
 import type { Translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -48,7 +50,8 @@ function buildSchema(t: Translate) {
 }
 
 type FormData = z.infer<ReturnType<typeof buildSchema>>;
-type Step = "details" | "code" | "done";
+/** `answered`: a suggested article answered the question, so no ticket was sent. */
+type Step = "details" | "code" | "done" | "answered";
 
 const RESEND_SECONDS = 45;
 
@@ -159,6 +162,32 @@ export function CreateTicketForm({ compact = false }: { compact?: boolean }) {
   }
 
   const orgName = (tenant ?? linkedTenant)?.orgName || (tenant ?? linkedTenant)?.name;
+  // Deflection searches only an organisation the link named and auth-api found.
+  const kbSlug = linkedTenant?.slug ?? null;
+  const subject = useWatch({ control, name: "subject" }) ?? "";
+
+  if (step === "answered") {
+    return (
+      <Card className={frame}>
+        <CardContent className={cn("flex flex-col items-center gap-4 text-center", compact ? "px-0 py-8" : "py-12")}>
+          <CheckCircle2 className="h-12 w-12 text-green-500" />
+          <p role="status" className="text-base font-medium">
+            {t("helpCenter.answeredDone")}
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {kbSlug && (
+              <Button asChild variant="outline">
+                <Link href={helpCenterHref(kbSlug)} target="_blank" rel="noopener noreferrer">
+                  {t("helpCenter.browse")}
+                </Link>
+              </Button>
+            )}
+            <Button onClick={() => setStep("details")}>{t("helpCenter.askAgain")}</Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (step === "done") {
     const email = details?.email ?? "";
@@ -274,6 +303,8 @@ export function CreateTicketForm({ compact = false }: { compact?: boolean }) {
             {errors.subject && <p className="text-xs text-destructive">{errors.subject.message}</p>}
           </div>
 
+          <KbDeflection tenantSlug={kbSlug} subject={subject} onAnswered={() => setStep("answered")} compact={compact} />
+
           <div className="min-w-0 space-y-1">
             <Label id="description-label">{t("support.description")}</Label>
             <Controller
@@ -317,6 +348,17 @@ export function CreateTicketForm({ compact = false }: { compact?: boolean }) {
               {t("support.trackIt")}
             </Link>
           </p>
+          {kbSlug && (
+            <p className="text-center text-sm">
+              <Link
+                href={helpCenterHref(kbSlug)}
+                className="font-medium text-primary hover:underline"
+                {...(compact ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              >
+                {t("helpCenter.browse")}
+              </Link>
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

@@ -10,9 +10,12 @@ import type {
   UpdateTeamData,
 } from "@/types/agents";
 
-/** Query parameters GET /{tenant}/agents and /teams read. The API caps `limit` at 100. */
+/**
+ * Query parameters GET /{tenant}/agents and /teams read. Both lists page by keyset, newest first:
+ * ask for the next page with `cursor` set to the previous page's `next_cursor`. The API caps
+ * `limit` at 100.
+ */
 export interface DirectoryListParams {
-  page?: number;
   limit?: number;
   teamId?: string;
   status?: string;
@@ -20,8 +23,16 @@ export interface DirectoryListParams {
   active?: boolean;
 }
 
-export async function getAgents(tenantSlug: string, params: DirectoryListParams = {}): Promise<AgentListResponse> {
-  const { data } = await api.get<AgentListResponse>(`api/v1/${tenantSlug}/agents`, { params });
+export async function getAgents(
+  tenantSlug: string,
+  params: DirectoryListParams = {},
+  cursor?: string,
+  signal?: AbortSignal,
+): Promise<AgentListResponse> {
+  const { data } = await api.get<AgentListResponse>(`api/v1/${tenantSlug}/agents`, {
+    params: { ...params, cursor: cursor || undefined },
+    signal,
+  });
   return data;
 }
 
@@ -57,9 +68,14 @@ export async function deleteAgent(tenantSlug: string, id: string): Promise<void>
 
 export async function getTeams(
   tenantSlug: string,
-  params: Pick<DirectoryListParams, "page" | "limit" | "active"> = {},
+  params: Pick<DirectoryListParams, "limit" | "active"> = {},
+  cursor?: string,
+  signal?: AbortSignal,
 ): Promise<TeamListResponse> {
-  const { data } = await api.get<TeamListResponse>(`api/v1/${tenantSlug}/teams`, { params });
+  const { data } = await api.get<TeamListResponse>(`api/v1/${tenantSlug}/teams`, {
+    params: { ...params, cursor: cursor || undefined },
+    signal,
+  });
   return data;
 }
 

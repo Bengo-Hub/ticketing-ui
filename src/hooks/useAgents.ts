@@ -1,6 +1,7 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CursorPage } from "@/types/tickets";
 import {
   type DirectoryListParams,
   createAgent,
@@ -15,14 +16,49 @@ import {
 } from "@/lib/api/agents";
 import type { CreateAgentData, CreateTeamData, UpdateAgentData, UpdateTeamData } from "@/types/agents";
 
-/** Agents page by page. Pickers pass `{ limit: 100 }`, the API's largest page. */
+const nextCursor = <T,>(last: CursorPage<T>) => (last.has_more && last.next_cursor ? last.next_cursor : undefined);
+
+/**
+ * The first keyset page of agents, newest first, for pickers and lookups. They pass
+ * `{ limit: 100 }`, the API's largest page; `has_more` says whether the tenant has more.
+ */
 export function useAgents(tenantSlug: string, params: DirectoryListParams = {}, enabled = true) {
   return useQuery({
-    queryKey: ["agents", tenantSlug, params],
-    queryFn: () => getAgents(tenantSlug, params),
+    queryKey: ["agents", tenantSlug, "first", params],
+    queryFn: ({ signal }) => getAgents(tenantSlug, params, undefined, signal),
     enabled: enabled && !!tenantSlug,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
+  });
+}
+
+/** The agent list a keyset page at a time, newest first; later pages load on "Load more". */
+export function useAgentList(tenantSlug: string, params: DirectoryListParams = {}, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: ["agents", tenantSlug, "list", params],
+    queryFn: ({ pageParam, signal }) => getAgents(tenantSlug, params, pageParam || undefined, signal),
+    initialPageParam: "",
+    getNextPageParam: nextCursor,
+    enabled: enabled && !!tenantSlug,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+}
+
+/** The team list a keyset page at a time, newest first; later pages load on "Load more". */
+export function useTeamList(
+  tenantSlug: string,
+  params: Pick<DirectoryListParams, "limit" | "active"> = {},
+  enabled = true,
+) {
+  return useInfiniteQuery({
+    queryKey: ["teams", tenantSlug, "list", params],
+    queryFn: ({ pageParam, signal }) => getTeams(tenantSlug, params, pageParam || undefined, signal),
+    initialPageParam: "",
+    getNextPageParam: nextCursor,
+    enabled: enabled && !!tenantSlug,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 }
 
@@ -36,14 +72,15 @@ export function useAvailableAgents(tenantSlug: string, enabled = true) {
   });
 }
 
+/** The first keyset page of teams, newest first, for pickers, lookups and the dashboard count. */
 export function useTeams(
   tenantSlug: string,
-  params: Pick<DirectoryListParams, "page" | "limit" | "active"> = {},
+  params: Pick<DirectoryListParams, "limit" | "active"> = {},
   enabled = true,
 ) {
   return useQuery({
-    queryKey: ["teams", tenantSlug, params],
-    queryFn: () => getTeams(tenantSlug, params),
+    queryKey: ["teams", tenantSlug, "first", params],
+    queryFn: ({ signal }) => getTeams(tenantSlug, params, undefined, signal),
     enabled: enabled && !!tenantSlug,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,

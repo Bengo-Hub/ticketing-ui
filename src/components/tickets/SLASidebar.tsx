@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { CalendarClock, CheckCircle2, CirclePause, ShieldAlert } from "lucide-react";
 import { Separator } from "@/components/ui/base";
 import { SLATimer } from "./SLATimer";
-import { useCalendar, useSLAPolicy } from "@/hooks/useSLA";
+import { useSLAPolicy } from "@/hooks/useSLA";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { useT } from "@/hooks/useT";
 import { PERM } from "@/lib/rbac/permissions";
@@ -33,16 +33,15 @@ function Target({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * The ticket's SLA deadlines, whether the clock is paused, and which clock the policy counts in.
- * The ticket carries only its policy id, so the clock line and the warning colour appear for
- * people who may read SLA settings; everyone else sees the deadlines alone.
+ * The ticket's SLA deadlines, whether the clock is paused, the policy and the clock it counts in.
+ * The ticket carries the policy and calendar names, so everyone who sees the ticket sees them.
+ * Only the warning colour needs the policy settings, so it appears for people who may read them.
  */
 export function SLASidebar({ ticket, orgSlug }: { ticket: Ticket; orgSlug: string }) {
   const { t } = useT();
   const { can } = useServicePermissions(orgSlug);
   const canRead = can(PERM.slaView);
   const policy = useSLAPolicy(orgSlug, ticket.sla_policy_id, canRead).data;
-  const calendar = useCalendar(orgSlug, policy?.calendar_id, canRead).data;
   const hasSLA = ticket.sla_response_due_at || ticket.sla_resolution_due_at;
   if (!hasSLA) return null;
 
@@ -51,15 +50,25 @@ export function SLASidebar({ ticket, orgSlug }: { ticket: Ticket; orgSlug: strin
   const pausedMinutes = ticket.sla_paused_minutes ?? 0;
   const took = (m?: number) => (m != null ? t("sla.tookBusiness", { duration: formatMinutes(m, t) }) : undefined);
 
+  // A policy without a calendar counts every minute.
+  const policyName = ticket.sla_policy_name;
   let clockLine: string | null = null;
-  if (policy && !policy.calendar_id) clockLine = t("sla.clock24x7");
-  else if (calendar) clockLine = t("sla.clockCalendar", { name: calendar.name });
+  if (ticket.sla_calendar_name) clockLine = t("sla.clockCalendar", { name: ticket.sla_calendar_name });
+  else if (policyName) clockLine = t("sla.clock24x7");
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <ShieldAlert className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-semibold text-foreground">{t("sla.title")}</span>
+        {policyName && (
+          <span
+            className="ml-auto min-w-0 truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+            title={t("sla.policyNamed", { name: policyName })}
+          >
+            {policyName}
+          </span>
+        )}
       </div>
 
       <Separator />

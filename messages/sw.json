@@ -115,7 +115,8 @@
     "title": "Tiketi",
     "newestFirst": "Mpya kwanza",
     "oldestFirst": "Za zamani kwanza",
-    "sortToggle": "Mpangilio: {current}. Badilisha mpangilio",
+    "slaDueFirst": "Muda wa SLA unaokaribia kwanza",
+    "order": "Mpangilio",
     "newTicket": "Tiketi mpya",
     "search": "Tafuta tiketi",
     "allStatuses": "Hali zote",
@@ -451,7 +452,8 @@
     "pausedTotal": "Muda uliosimama hadi sasa: {duration}",
     "tookBusiness": "Ilichukua {duration} ya muda wa SLA",
     "clock24x7": "Inahesabu kila saa ya siku (24x7)",
-    "clockCalendar": "Inahesabu saa za kalenda ya {name}"
+    "clockCalendar": "Inahesabu saa za kalenda ya {name}",
+    "policyNamed": "Sera ya SLA: {name}"
   },
   "slaPolicies": {
     "tab": "Sera",
@@ -1128,5 +1130,35 @@
       "saveFailed": "Mpangilio haukuweza kuhifadhiwa. Tafadhali jaribu tena.",
       "loadFailed": "Hatukuweza kupakia mipangilio ya AI."
     }
+  },
+  "helpCenter": {
+    "title": "Kituo cha msaada",
+    "titleOrg": "Kituo cha msaada cha {org}",
+    "intro": "Majibu ya maswali ya kawaida. Usipopata unachohitaji, tutumie ombi.",
+    "searchPlaceholder": "Tafuta makala",
+    "allCategories": "Makundi yote",
+    "empty": "Bado hakuna makala.",
+    "emptySearch": "Hakuna makala zinazolingana na utafutaji wako.",
+    "loadFailed": "Hatukuweza kupakia makala. Tafadhali jaribu tena.",
+    "orgMissing": "Fungua ukurasa huu kupitia kiungo cha msaada cha shirika unalohitaji msaada kutoka kwake.",
+    "backToList": "Makala zote",
+    "notFound": "Makala hii haikupatikana. Huenda imehamishwa au haijachapishwa tena.",
+    "updated": "Imesasishwa {date}",
+    "views": "Imetazamwa mara {n}",
+    "wasHelpful": "Je, makala hii imekusaidia?",
+    "yes": "Ndiyo",
+    "no": "Hapana",
+    "thanks": "Asante kwa maoni yako.",
+    "voteFailed": "Maoni yako hayakuweza kuhifadhiwa. Tafadhali jaribu tena.",
+    "stillNeedHelp": "Bado unahitaji msaada?",
+    "contactUs": "Tuma ombi la msaada",
+    "browse": "Vinjari kituo cha msaada",
+    "suggestTitle": "Makala hizi huenda zikajibu swali lako",
+    "suggestLoading": "Tunatafuta majibu...",
+    "openArticle": "Soma makala",
+    "answered": "Hii imejibu swali langu",
+    "answeredDone": "Tunafurahi imekusaidia. Hakuna ombi lililotumwa.",
+    "askAgain": "Bado nahitaji msaada",
+    "continueSubmit": "Hakuna inayosaidia? Endelea na ombi lako hapa chini."
   }
 }

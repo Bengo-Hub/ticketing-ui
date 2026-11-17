@@ -36,3 +36,7 @@ next-env.d.ts
 # Old next-pwa output. public/sw.js is hand-written and tracked.
 public/workbox-*.js
 public/workbox-*.js.map
+
+# Playwright output
+/test-results/
+/playwright-report/

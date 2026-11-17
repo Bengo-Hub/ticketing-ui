@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import { Loader2, PlusCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
-import { useCreateTeam, useDeleteTeam, useTeams, useUpdateTeam } from "@/hooks/useAgents";
+import { useCreateTeam, useDeleteTeam, useTeamList, useUpdateTeam } from "@/hooks/useAgents";
+import { flattenPages } from "@/hooks/useTickets";
+import { LoadMore } from "@/components/common/load-more";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { PERM } from "@/lib/rbac/permissions";
 import { PageHeader } from "@/components/common/page-header";
@@ -105,9 +107,9 @@ export default function TeamsPage() {
   const { can } = useServicePermissions(orgSlug);
   const canManage = can(PERM.teamsManage);
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
-  const { data, isLoading, isError, refetch } = useTeams(orgSlug, { page, limit });
+  // Keyset pages, newest first.
+  const query = useTeamList(orgSlug, { limit: 25 });
+  const rows = useMemo(() => flattenPages(query.data), [query.data]);
   const deleteTeam = useDeleteTeam(orgSlug);
 
   const [editing, setEditing] = useState<Team | null>(null);
@@ -126,7 +128,6 @@ export default function TeamsPage() {
       }),
     [canManage],
   );
-  const total = data?.total ?? 0;
 
   const onRemove = async () => {
     if (!removing) return;
@@ -145,7 +146,7 @@ export default function TeamsPage() {
         back={{ href: orgRoute(orgSlug, "/admin"), label: "Admin" }}
         icon={Users}
         title="Teams"
-        subtitle={`${total} teams`}
+        subtitle={query.hasNextPage ? `${rows.length}+ teams` : `${rows.length} teams`}
         actions={
           canManage ? (
             <Button
@@ -162,12 +163,12 @@ export default function TeamsPage() {
 
       <DataTable
         columns={columns}
-        rows={data?.data ?? []}
+        rows={rows}
         rowKey={(t) => t.id}
-        loading={isLoading}
+        loading={query.isLoading}
         loadingRows={4}
-        error={isError}
-        onRetry={() => void refetch()}
+        error={query.isError}
+        onRetry={() => void query.refetch()}
         emptyText="No teams yet."
         onRowClick={
           canManage
@@ -178,16 +179,12 @@ export default function TeamsPage() {
             : undefined
         }
         maxBodyHeight={false}
-        page={page}
-        totalPages={Math.max(1, Math.ceil(total / limit))}
-        onPageChange={setPage}
-        total={total}
-        pageSize={limit}
-        pageSizeOptions={[10, 25, 50, 100]}
-        onPageSizeChange={(n) => {
-          setLimit(n);
-          setPage(1);
-        }}
+      />
+      <LoadMore
+        shown={rows.length}
+        hasMore={!!query.hasNextPage}
+        loading={query.isFetchingNextPage}
+        onLoadMore={() => void query.fetchNextPage()}
       />
 
       {sheetOpen && (

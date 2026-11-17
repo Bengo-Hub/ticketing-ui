@@ -1,6 +1,6 @@
 # Sprint 12: AI with Vera and the Public Knowledge Base
 
-**Status: AI written on 2026-11-17, not yet built or deployed. Public KB pending.** It consumes [API sprint 13](../../../ticketing-api/docs/sprints/sprint-13-ai-vera.md) and follows the contract in [ticketing-api docs/ai.md](../../../ticketing-api/docs/ai.md).
+**Status: AI and the public KB written on 2026-11-17, not yet built or deployed.** It consumes [API sprint 13](../../../ticketing-api/docs/sprints/sprint-13-ai-vera.md) and follows the contract in [ticketing-api docs/ai.md](../../../ticketing-api/docs/ai.md).
 
 ## Tasks
 
@@ -12,8 +12,19 @@
 - [x] The auto-classify switch in admin settings (written)
 - [x] A refresh of the ticket and the lists on the `ticket.ai_classified` event (written)
 - [x] Out of AI credits or AI unavailable shows a short note under that one button, with the ticket action unaffected (written)
-- [ ] A public knowledge base outside the signed-in layout, with rich text rendering
-- [ ] KB deflection on the public support form (the signed-in create form already has it)
+- [x] A public knowledge base outside the signed-in layout, with rich text rendering (written)
+- [x] KB deflection on the public support form and the embedded widget (written)
+- [x] The staff KB list on the keyset API (written)
+
+## How the public knowledge base works
+
+The help center lives at `/support/kb?org=<slug>` (`tenant` is also read, as on the track page), inside the public support layout, with no sign-in. It reads ticketing-api's public KB routes ([integrations.md](../../../ticketing-api/docs/integrations.md#public-routes)) through `src/lib/api/public-kb.ts`, with plain fetch so a signed-in user's token never goes with a public call. The API only returns the tenant's published, public articles.
+
+- **List.** `HelpCenterList` (shared with the signed-in `/[orgSlug]/kb`): debounced search, category chips from `GET /kb/categories` with counts, keyset pages with "Load more". A link without a known organisation shows a short note instead of a list.
+- **Article.** `/support/kb/<slug>?org=<slug>` is a server page: it reads the article once, sets the page title, description, canonical link and Open Graph, and lets search engines index it (`index, follow`); a missing, draft or private article is `noindex`. The client view (`HelpArticle`, shared with `/[orgSlug]/kb/[slug]`) takes the server's copy as its initial data, so a visit counts one view. The body is the HTML the API sanitised on save, shown through `RichTextView`'s allow-list. One helpful or not helpful vote per page view; the counts update in place.
+- **Deflection.** `KbDeflection` sits under the subject on the public form and so in the widget too. Once typing pauses on a subject of five or more characters, it asks `GET /kb/suggestions` (a plain search, no AI and no credits) and shows up to five articles with their excerpts. Articles open in a new tab, so the form keeps what was typed and the widget never tries to frame the help center. "This answered my question" counts a helpful vote and ends the flow without a ticket, with "I still need help" back to the filled form. It only searches the organisation the link named and auth-api found.
+- **Links.** The public form offers "Browse the help center" when the organisation is known, and the article and list pages lead back to `/support?org=`.
+- **Strings.** Under `helpCenter` in `messages/en.json` and `messages/sw.json`. The Swahili strings are mine and still need the owner's review.
 
 ## How the AI features work in the UI
 
@@ -44,7 +55,8 @@ Customers hold only `ticketing.tickets.view_own`, so they never see an AI button
 
 ## Acceptance criteria
 
-- A visitor without an account reads a public article.
+- A visitor without an account reads a public article, and a draft or private article is not found.
+- Typing a subject on the public form or the widget shows matching public articles, and "This answered my question" sends no ticket.
 - A tenant at zero AI balance sees "Out of AI credits" under the button it pressed and still saves tickets and replies.
 - A retry after a 503 sends the same `Idempotency-Key` as the failed click; a new click sends a new one.
 - A suggested reply is never posted until the agent sends it.

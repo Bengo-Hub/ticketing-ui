@@ -34,6 +34,13 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 - **Analytics.** `/admin/analytics` has Tickets, Agents, SLA and CSAT views with KPI cards, trend charts, every breakdown the API returns, filters for dates, team, agent, category, channel and priority in the address bar, the browser's time zone, and PDF, CSV and XLSX exports of the same query.
 - **CSAT survey.** `/support/csat?tenant=&token=` (optional `&score=`) checks the survey token, shows the ticket and takes a rating from 1 to 5 with an optional comment. Already answered, expired and unknown links each get their own message.
 
+The carry-over of sprints 4, 8 and 9 reads the fields and orders of ticketing-api's sprint 9 carry-over:
+
+- **SLA due inbox.** Staff open `/tickets` and the agent queue nearest SLA target first (`sort=sla_due`), with an order control for SLA due first, newest first and oldest first. Customers keep the two date orders.
+- **SLA panel.** It names the policy beside the SLA title and the calendar or 24x7 under the timers, from `sla_policy_name` and `sla_calendar_name` on the ticket, for everyone who sees the ticket.
+- **Comment author names.** Each message shows the author's name from `author_name`, with the role beside it.
+- **Agents and teams on keyset.** `/admin/agents` and `/admin/teams` page newest first with "Load more"; pickers read the first page of 100 and list names alphabetically.
+
 ## Stack
 
 | Area | Choice |
@@ -67,8 +74,9 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 | `/admin/settings/roles` | `rbac.view`; every change needs `rbac.manage` | Roles: default and custom roles, create, copy, customise, rename, delete, the permission matrix by module and the 30 day change log |
 | `/[orgSlug]/auth/callback` | everyone | SSO code exchange; errors use the shared `SSOCallbackError` card |
 | `/[orgSlug]/unauthorized` | everyone | Permission refusal |
-| `/support`, `/support/track`, `/support/tickets/[emailToken]` | no account | Public create, track and reply with email codes |
-| `/support/widget?tenant=<slug>&theme=` | no account | The public create flow in a compact frame for `public/widget.js`; the only route any site may frame |
+| `/support`, `/support/track`, `/support/tickets/[emailToken]` | no account | Public create (with KB deflection as the subject is typed), track and reply with email codes |
+| `/support/widget?tenant=<slug>&theme=` | no account | The public create flow in a compact frame for `public/widget.js`, with the same KB deflection; the only route any site may frame |
+| `/support/kb?org=<slug>`, `/support/kb/[slug]?org=<slug>` | no account | The public help center: published public articles with search, categories and votes; articles are indexed by search engines |
 | `/support/csat?tenant=<tenant id>&token=<token>&score=` | no account | The CSAT survey from the resolved-ticket email; `score` is optional and preselects a rating |
 
 ## Find, Flip, Fix (read 2026-11-16)
@@ -127,15 +135,15 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [1](sprints/sprint-1-customer-portal.md) | Customer portal and public support pages | Partial | Attachments, shared fields on the public pages, working ticket search |
 | [2](sprints/sprint-2-agent-workspace.md) | Agent workspace | Done | |
 | [3](sprints/sprint-3-admin-console.md) | Admin console | Partial | Adding agents from the user directory (role administration moved to sprint 13) |
-| [4](sprints/sprint-4-sla-visualization.md) | SLA visualization | Partial | Inbox sorted by SLA due time |
-| [5](sprints/sprint-5-knowledge-base.md) | Knowledge base | Partial | Public KB outside sign-in, category list, deflection |
+| [4](sprints/sprint-4-sla-visualization.md) | SLA visualization | Partial | The SLA due inbox order and the policy name on the panel are written, not yet built or deployed |
+| [5](sprints/sprint-5-knowledge-base.md) | Knowledge base | Written, not built | Build and a check against the deployed API |
 | [6](sprints/sprint-6-analytics.md) | Analytics | Replaced | Rebuilt on the rollup routes in sprint 11 |
 | [7](sprints/sprint-7-realtime.md) | Real-time updates | Partial | Toasts, unread count, push, presence |
-| [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Partial | @mentions (waits on shared-ui-lib v0.1.147), comment author names, keyset paging on the agents, teams and KB lists, offline inbox and queued replies, app shell, Playwright tests |
-| [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Partial | Calendars, policy settings, the SLA report and the paused clock are written but not yet built or tested; sort by SLA, escalation level on rows and the fresh-tenant test remain |
+| [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Partial | @mentions (waits on shared-ui-lib v0.1.147), offline inbox and queued replies, app shell, Playwright tests; comment author names and keyset paging on the agents and teams lists are written, not yet built |
+| [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Partial | Calendars, policy settings, the SLA report and the paused clock are written but not yet built or tested, and so is the SLA due inbox order (2026-11-17); escalation level on rows and the fresh-tenant test remain |
 | [10](sprints/sprint-10-channels.md) | Channels | Partial | Settings with the forwarding status, the channel badge and filter, the WhatsApp window in the composer and the web widget are written but not yet built or tested; WhatsApp templates, threaded channel rendering and the notifications inbox note remain |
 | [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Written | Type-check, lint and build; a check of every view and export against the deployed API; a real survey email rated once and refused the second time |
-| [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Partial | AI features written, not yet built or checked against the deployed API; public KB and deflection on the public support form remain |
+| [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Written, not built | AI features, the public help center and deflection on the public form and widget are written; build, a check against the deployed API, and the owner's review of the Swahili strings remain |
 | [13](sprints/sprint-13-auth-and-roles.md) | Sign-in flow, users and roles | Written | Type-check, lint and build; a check against the new ticketing-api role endpoints; the two sign-in fixes confirmed in production |
 
 ## Known issues and pending
@@ -144,10 +152,10 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 |---|---|---|
 | GitHub reports 57 Dependabot alerts on ticketing-ui | UI | Integration review and test pass |
 | The public support pages still use native form fields and a plain textarea | UI | Sprint 8 |
-| The ticket response carries only `sla_policy_id`, so the SLA panel fetches the policy and its calendar to name the clock, and people without `sla.view` see no clock line | API | Open |
+| The ticket response carried only `sla_policy_id`, so the SLA panel fetched the policy and its calendar to name the clock, and people without `sla.view` saw no clock line | API | Written 2026-11-17: the ticket carries `sla_policy_name` and `sla_calendar_name`, and the panel no longer fetches the calendar |
 | Update requests cannot clear a field, because the API's `UpdateTicketRequest` uses pointers with `omitempty` | API | API sprint 9 |
-| Fields the UI needs and the API lacks: a tenant user directory for people not yet provisioned in ticketing, a KB category list, comment author names. Stats `resolved_today` and `overdue` and previous-period figures arrived with the API's analytics routes | API | API sprints 9 and 12 |
-| ticketing-api's `kb.Article` has no JSON tags, so the KB routes and the AI draft answer send Go field names (`ID`, `Title`, `IsPublic`), while the UI's `KBArticle` type reads `id`, `title` and `is_public`. The AI draft panel reads the Go names; the KB pages still need the API to add tags | API | Open |
+| Fields the UI needs and the API lacks: a tenant user directory for people not yet provisioned in ticketing (comment author names arrived as `author_name` and the KB category list as `GET /kb/categories`, both written 2026-11-17). Stats `resolved_today` and `overdue` and previous-period figures arrived with the API's analytics routes | API | API sprints 9 and 12 |
+| ticketing-api's `kb.Article` had no JSON tags, so the KB routes sent Go field names (`ID`, `Title`, `IsPublic`) | API | Fixed 2026-11-17: snake_case tags on `kb.Article`, and the public routes send the slimmer `kb.PublicArticle` |
 | The KB editor at `/admin/kb/{id}` is gated by `ticketing.kb.manage`, so someone holding only `ticketing.kb.add` can draft an article with AI but cannot open it | UI | Open |
 | The API's OTP client is not on shared-service-client, because a retried call could replay a one-time code | API | Kept as is by design |
 | `tickets/handler.go` and `identity/handler.go` in ticketing-api are over 400 lines | API | API sprint 9 |
@@ -156,6 +164,15 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | No route other than `/support/widget` sent a framing header, and neither does the ingress, so any site could frame the signed-in app | UI | Fixed 2026-11-17: every other route sends `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` (next.config.ts) |
 | A browser holding a session auth-api refused stayed on "Initializing session..." while `/me` was called again and again, and the sign-in guard rendered different text on the server and in the browser (React error 418) | UI | Written 2026-11-17 in sprint 13, not yet deployed |
 | Turbopack on Windows refuses the shared-ui-lib `@source` path through the pnpm junction, so local verification uses `next build --webpack` while CI builds with Turbopack on Linux | UI | Open |
+| The help center article page read the article on the UI server with no cache, so every visitor's read reached ticketing-api from the UI server's IP and shared one rate limit bucket (120 a minute per tenant on that route, 300 a minute globally); a busy article or a crawler could make the page fail for everyone | UI and API | Written 2026-11-17, not yet deployed: see "Help center reads" below |
+
+### Help center reads
+
+`/support/kb/[slug]` reads the article through `src/lib/api/public-kb-server.ts`:
+
+- **Page cache.** The article is kept in Next's data cache for 60 seconds under the tenant and slug only, so repeat views and crawlers mostly never reach ticketing-api. Only a 200 is kept; a 404, 429 or error answers that visit and is asked again on the next one. The cache lives on each UI pod, so with two pods an article is read at most twice a minute. An edit or unpublish shows on the public page within a minute.
+- **The visitor's own bucket.** The read behind a cache miss sends the visitor's IP in `X-Visitor-IP` and the shared `VISITOR_IP_FORWARD_KEY` in `X-Visitor-IP-Key`. The IP is the `X-Real-IP` the ingress in front of ticketing-ui set from Cloudflare's `CF-Connecting-IP`, which a browser cannot choose. ticketing-api trusts `X-Visitor-IP` only with the matching key and otherwise ignores it ([integrations](../../ticketing-api/docs/integrations.md), Client IP and the help center's server-side reads). With no key set, the header is not sent and reads fall back to the UI server's bucket, which the cache keeps small.
+- **Views.** The cached read asks with `count_view=false`, so a cache miss is not a view. The page then counts one view from the visitor's browser with `POST /api/v1/{tenant}/kb/articles/{id}/view`, once per page view. Crawlers that do not run scripts are not counted, and the view count on the page can be up to a minute old. When the server could not read the article, the browser reads it again itself and that read counts the view.
 
 ## Environment
 
@@ -165,6 +182,8 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | `NEXT_PUBLIC_SSO_URL` | `https://sso.codevertexafrica.com` | SSO and auth-api |
 | `NEXT_PUBLIC_SSO_CLIENT_ID` | `ticketing-ui` | OAuth client |
 | `NEXT_PUBLIC_AUTH_API_URL` | empty | auth-api override |
+| `VISITOR_IP_FORWARD_KEY` | empty | Server only, a secret of at least 32 characters, the same value as ticketing-api's. Lets the help center's server-side reads be limited per visitor. Empty sends no visitor IP |
+| `API_INTERNAL_URL` | empty | Server only. The in-cluster ticketing-api URL for the help center's server-side reads, so they do not loop out through Cloudflare. Empty uses `NEXT_PUBLIC_API_URL` |
 
 ## References
 

@@ -20,7 +20,8 @@ import { cn, orgRoute } from "@/lib/utils";
 import { useT } from "@/hooks/useT";
 import type { MessageKey } from "@/lib/i18n";
 import { useTicketLabels } from "@/lib/ticket-options";
-import type { Ticket } from "@/types/tickets";
+import type { Ticket, TicketSort } from "@/types/tickets";
+import { TicketSortControl } from "@/components/tickets/inbox/InboxToolbar";
 
 type Queue = "active" | "pending" | "all";
 
@@ -53,10 +54,12 @@ export default function AgentInboxPage() {
   const { t } = useT();
   const labels = useTicketLabels();
   const [queue, setQueue] = useState<Queue>("active");
+  // The inbox opens nearest SLA target first; the order control changes it for this visit.
+  const [sort, setSort] = useState<TicketSort>("sla_due");
 
   // The list API filters by one status at a time, so the queue tabs split the loaded tickets here.
   const query = useTicketList(
-    { tenantSlug: orgSlug, agentId: agentId ?? undefined, limit: QUEUE_PAGE_SIZE },
+    { tenantSlug: orgSlug, agentId: agentId ?? undefined, limit: QUEUE_PAGE_SIZE, sort },
     "",
     !!agentId,
   );
@@ -111,22 +114,25 @@ export default function AgentInboxPage() {
         onRowClick={(r) => router.push(orgRoute(orgSlug, `/tickets/${r.id}`))}
         maxBodyHeight={false}
         toolbar={
-          <div role="tablist" aria-label={t("agentQueue.queue")} className="inline-flex rounded-lg bg-muted p-1">
-            {QUEUES.map((q) => (
-              <button
-                key={q.key}
-                type="button"
-                role="tab"
-                aria-selected={queue === q.key}
-                onClick={() => setQueue(q.key)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  queue === q.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t(q.label)}
-              </button>
-            ))}
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <div role="tablist" aria-label={t("agentQueue.queue")} className="inline-flex rounded-lg bg-muted p-1">
+              {QUEUES.map((q) => (
+                <button
+                  key={q.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={queue === q.key}
+                  onClick={() => setQueue(q.key)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    queue === q.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t(q.label)}
+                </button>
+              ))}
+            </div>
+            <TicketSortControl value={sort} onChange={setSort} withSLA className="w-full sm:ml-auto sm:w-56" />
           </div>
         }
       />

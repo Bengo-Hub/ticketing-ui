@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
             <KpiCard
               icon={Users}
               label={t("dashboard.teams")}
-              value={teams.data?.total ?? 0}
+              display={teams.data ? `${teams.data.data.length}${teams.data.has_more ? "+" : ""}` : undefined}
               loading={teams.isLoading}
               footnote={
                 <Link href={orgRoute(orgSlug, "/admin/teams")} className="inline-flex items-center gap-1 text-primary hover:underline">

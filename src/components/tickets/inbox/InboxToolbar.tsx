@@ -1,20 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
 import { MultiSelectCombobox, SearchableCombobox, type ComboboxOption } from "@bengo-hub/shared-ui-lib/combobox";
 import { SearchInput } from "@bengo-hub/shared-ui-lib/search";
 import type { DebouncedSearch } from "@bengo-hub/shared-ui-lib/search";
-import { Button } from "@/components/ui/base";
 import { useTicketTags } from "@/hooks/useTickets";
 import { useT } from "@/hooks/useT";
 import { useTicketLabels } from "@/lib/ticket-options";
-import type { TicketChannel, TicketPriority, TicketStatus } from "@/types/tickets";
-import type { InboxFilters } from "./filters";
+import type { TicketChannel, TicketPriority, TicketSort, TicketStatus } from "@/types/tickets";
+import { effectiveSort, type InboxFilters } from "./filters";
 
 /**
- * Search and filters above the inbox. The tag filter (tickets carrying every chosen tag) is for
- * staff, who are the only ones who can list the tenant's tags.
+ * Search and filters above the inbox. The tag filter (tickets carrying every chosen tag) and the
+ * SLA order are for staff, who are the only ones who can list the tenant's tags and work to SLA.
  */
 export function InboxToolbar({
   orgSlug,
@@ -24,6 +22,7 @@ export function InboxToolbar({
   onChange,
   categoryOptions,
   showTags,
+  showSLASort,
 }: {
   orgSlug: string;
   search: DebouncedSearch;
@@ -32,6 +31,7 @@ export function InboxToolbar({
   onChange: (next: Partial<InboxFilters>) => void;
   categoryOptions: ComboboxOption[];
   showTags: boolean;
+  showSLASort: boolean;
 }) {
   const { t } = useT();
   const labels = useTicketLabels();
@@ -42,7 +42,6 @@ export function InboxToolbar({
     const missing = filters.tags.filter((tag) => !known.some((o) => o.value === tag)).map((tag) => ({ value: tag, label: tag }));
     return [...known, ...missing];
   }, [tags.data, filters.tags]);
-  const newest = filters.sort === "created_desc";
 
   return (
     <div className="grid w-full grid-cols-2 gap-2 lg:grid-cols-[minmax(14rem,2fr)_repeat(4,minmax(0,1fr))]">
@@ -87,16 +86,52 @@ export function InboxToolbar({
           className="col-span-2 lg:col-span-4"
         />
       )}
-      <Button
-        variant="outline"
-        size="sm"
-        className="col-span-2 h-10 justify-start lg:col-span-1"
-        onClick={() => onChange({ sort: newest ? "created_asc" : "created_desc" })}
-        aria-label={t("tickets.sortToggle", { current: newest ? t("tickets.newestFirst") : t("tickets.oldestFirst") })}
-      >
-        {newest ? <ArrowDownWideNarrow className="h-4 w-4" /> : <ArrowUpNarrowWide className="h-4 w-4" />}
-        {newest ? t("tickets.newestFirst") : t("tickets.oldestFirst")}
-      </Button>
+      <TicketSortControl
+        value={effectiveSort(filters.sort, showSLASort)}
+        onChange={(sort) => onChange({ sort })}
+        withSLA={showSLASort}
+        className="col-span-2 lg:col-span-1"
+      />
     </div>
+  );
+}
+
+/**
+ * The order of a ticket list: SLA due first (staff), newest first or oldest first. Choosing an
+ * order starts the list again from its first page, since a cursor belongs to one order.
+ */
+export function TicketSortControl({
+  value,
+  onChange,
+  withSLA,
+  className,
+}: {
+  value: TicketSort;
+  onChange: (sort: TicketSort) => void;
+  withSLA: boolean;
+  className?: string;
+}) {
+  const { t } = useT();
+  const options = useMemo<ComboboxOption[]>(
+    () => [
+      ...(withSLA ? [{ value: "sla_due", label: t("tickets.slaDueFirst") }] : []),
+      { value: "created_desc", label: t("tickets.newestFirst") },
+      { value: "created_asc", label: t("tickets.oldestFirst") },
+    ],
+    [withSLA, t],
+  );
+  return (
+    <SearchableCombobox
+      options={options}
+      value={value}
+      onChange={(v) => {
+        // The order cannot be cleared; an empty choice keeps the current one.
+        if (v) onChange(v as TicketSort);
+      }}
+      placeholder={t("tickets.order")}
+      searchPlaceholder={t("tickets.order")}
+      clearable={false}
+      className={className}
+    />
   );
 }

@@ -19,6 +19,7 @@ import { InboxToolbar } from "@/components/tickets/inbox/InboxToolbar";
 import { ViewsPanel } from "@/components/tickets/inbox/ViewsPanel";
 import {
   EMPTY_FILTERS,
+  effectiveSort,
   fromView,
   isFiltered,
   toListFilters,
@@ -50,7 +51,9 @@ export default function TicketsPage() {
   // A new search term starts a new list from its first page, so the selection is cleared.
   const search = useDebouncedSearch({ onTermChange: () => setSelected(new Set()) });
 
-  const query = useTicketList({ tenantSlug: orgSlug, ...toListFilters(filters) }, search.term);
+  // Staff open the inbox nearest SLA target first; the order control changes it for this visit.
+  const sort = effectiveSort(filters.sort, staffView);
+  const query = useTicketList({ tenantSlug: orgSlug, ...toListFilters(filters, staffView) }, search.term);
   const rows = useMemo(() => flattenPages(query.data), [query.data]);
   const columns = useMemo(
     () => buildTicketColumns({ agentName, categoryName, labels, t }),
@@ -102,6 +105,7 @@ export default function TicketsPage() {
             onChange={change}
             categoryOptions={categoryOptions}
             showTags={staffView}
+            showSLASort={staffView}
           />
         }
       />
@@ -119,7 +123,9 @@ export default function TicketsPage() {
       <PageHeader
         icon={ClipboardList}
         title={t("tickets.title")}
-        subtitle={filters.sort === "created_desc" ? t("tickets.newestFirst") : t("tickets.oldestFirst")}
+        subtitle={
+          sort === "sla_due" ? t("tickets.slaDueFirst") : sort === "created_desc" ? t("tickets.newestFirst") : t("tickets.oldestFirst")
+        }
         actions={
           can(PERM.ticketsAdd) ? (
             <Button onClick={() => router.push(orgRoute(orgSlug, "/tickets/new"))}>
@@ -136,7 +142,7 @@ export default function TicketsPage() {
             <ViewsPanel
               orgSlug={orgSlug}
               activeId={viewId}
-              current={{ filters: toViewFilters(filters, search.value), sort: filters.sort }}
+              current={{ filters: toViewFilters(filters, search.value), sort }}
               selfUserId={profile?.user_id}
               canManage={can(PERM.ticketsManage)}
               onApply={applyView}

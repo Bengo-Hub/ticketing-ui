@@ -9,7 +9,7 @@
 - [x] Ticket detail in three panes on wide screens (conversation, properties, SLA) and stacked on phones
 - [x] Replies and internal notes through the shared `RichTextEditor` (`ReplyComposer`)
 - [x] Properties: status, priority, category, team and agent through `SearchableCombobox`; only status moves the API accepts are offered
-- [x] Comment author shown by type; author names need an API field (API sprint 9)
+- [x] Comment author shown by name with the type beside it, from the API's `author_name` (written 2026-11-17, UI sprint 8)
 
 ## Acceptance criteria
 

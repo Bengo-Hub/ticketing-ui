@@ -85,6 +85,16 @@ async function send<T>(
   return ((await res.json().catch(() => null)) ?? {}) as T;
 }
 
+/** A public GET with the same error handling as the support calls (used by the public help center). */
+export function publicGet<T>(url: string, signal?: AbortSignal): Promise<T> {
+  return send<T>(url, { method: "GET", signal });
+}
+
+/** A public JSON POST with the same error handling as the support calls. */
+export function publicPost<T>(url: string, payload: unknown): Promise<T> {
+  return post<T>(url, payload);
+}
+
 /** Emails a six-digit code to the visitor. The tenant slug brands the email. */
 export async function sendSupportCode(tenantSlug: string, email: string): Promise<void> {
   await post(`${AUTH_BASE}/api/v1/auth/public-otp/send`, { email, tenant_slug: tenantSlug });

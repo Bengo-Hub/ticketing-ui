@@ -6,7 +6,6 @@ import {
   createSLAPolicy,
   deleteCalendar,
   deleteSLAPolicy,
-  getCalendar,
   getCalendars,
   getSLAPolicies,
   getSLAPolicy,
@@ -80,15 +79,6 @@ export function useCalendars(tenantSlug: string, page = 1, limit = 100, enabled 
   });
 }
 
-export function useCalendar(tenantSlug: string, id: string | null | undefined, enabled = true) {
-  return useQuery({
-    queryKey: ["sla-calendar", tenantSlug, id],
-    queryFn: () => getCalendar(tenantSlug, id as string),
-    enabled: enabled && !!tenantSlug && !!id,
-    staleTime: 5 * 60_000,
-  });
-}
-
 export function useSaveCalendar(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -96,7 +86,8 @@ export function useSaveCalendar(tenantSlug: string) {
       id ? updateCalendar(tenantSlug, id, data) : createCalendar(tenantSlug, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["sla-calendars"] });
-      void qc.invalidateQueries({ queryKey: ["sla-calendar"] });
+      // Tickets carry their calendar's name, so an open ticket shows a rename at once.
+      void qc.invalidateQueries({ queryKey: ["ticket"] });
     },
   });
 }

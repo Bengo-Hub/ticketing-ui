@@ -15,7 +15,7 @@ import { useSearchQuery } from "@bengo-hub/shared-ui-lib/search/query";
 import { useCreateTicket } from "@/hooks/useTickets";
 import { useCategories } from "@/hooks/useCategories";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
-import { searchPublicArticles } from "@/lib/api/kb";
+import { suggestPublicArticles } from "@/lib/api/public-kb";
 import { classifyDraft } from "@/lib/api/ai";
 import { useAiAction } from "@/hooks/useAI";
 import { useT } from "@/hooks/useT";
@@ -92,7 +92,7 @@ export default function NewTicketPage() {
     term: subjectTerm.length >= 5 ? subjectTerm : "",
     allowEmpty: false,
     enabled: !deflectionDismissed,
-    fetcher: (term, signal) => searchPublicArticles(orgSlug, term, 3, signal),
+    fetcher: (term, signal) => suggestPublicArticles(orgSlug, term, 3, signal),
   });
   const kbSuggestions = subjectTerm.length >= 5 ? (suggestions.data ?? []) : [];
   const showDeflection = !deflectionDismissed && (suggestions.isFetching || kbSuggestions.length > 0);

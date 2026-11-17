@@ -115,7 +115,8 @@
     "title": "Tickets",
     "newestFirst": "Newest first",
     "oldestFirst": "Oldest first",
-    "sortToggle": "Order: {current}. Change the order",
+    "slaDueFirst": "SLA due first",
+    "order": "Order",
     "newTicket": "New ticket",
     "search": "Search tickets",
     "allStatuses": "All statuses",
@@ -451,7 +452,8 @@
     "pausedTotal": "Paused so far: {duration}",
     "tookBusiness": "Took {duration} of SLA time",
     "clock24x7": "Counts every hour of the day (24x7)",
-    "clockCalendar": "Counts the hours of the {name} calendar"
+    "clockCalendar": "Counts the hours of the {name} calendar",
+    "policyNamed": "SLA policy: {name}"
   },
   "slaPolicies": {
     "tab": "Policies",
@@ -1128,5 +1130,35 @@
       "saveFailed": "The setting could not be saved. Please try again.",
       "loadFailed": "We could not load the AI settings."
     }
+  },
+  "helpCenter": {
+    "title": "Help center",
+    "titleOrg": "{org} help center",
+    "intro": "Answers to common questions. If you do not find what you need, send us a request.",
+    "searchPlaceholder": "Search articles",
+    "allCategories": "All categories",
+    "empty": "No articles yet.",
+    "emptySearch": "No articles match your search.",
+    "loadFailed": "We could not load the articles. Please try again.",
+    "orgMissing": "Open this page from the help link of the organization you need help from.",
+    "backToList": "All articles",
+    "notFound": "This article was not found. It may have been moved or unpublished.",
+    "updated": "Updated {date}",
+    "views": "{n} views",
+    "wasHelpful": "Was this article helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "thanks": "Thank you for your feedback.",
+    "voteFailed": "Your feedback could not be saved. Please try again.",
+    "stillNeedHelp": "Still need help?",
+    "contactUs": "Send a support request",
+    "browse": "Browse the help center",
+    "suggestTitle": "These articles may answer your question",
+    "suggestLoading": "Looking for answers...",
+    "openArticle": "Read the article",
+    "answered": "This answered my question",
+    "answeredDone": "Glad that helped. No request was sent.",
+    "askAgain": "I still need help",
+    "continueSubmit": "None of these help? Continue with your request below."
   }
 }

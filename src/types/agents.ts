@@ -1,5 +1,5 @@
 // Mirrors ticketing-api internal/modules/identity/domain.go. Field names are the wire names.
-import type { PageResponse } from "@/types/tickets";
+import type { CursorPage } from "@/types/tickets";
 
 export type AgentRole = "agent" | "supervisor" | "admin";
 export type AgentStatus = "available" | "busy" | "away" | "offline";
@@ -67,5 +67,7 @@ export interface UpdateTeamData {
   is_active?: boolean;
 }
 
-export type AgentListResponse = PageResponse<Agent>;
-export type TeamListResponse = PageResponse<Team>;
+/** GET /{tenant}/agents: a keyset page, newest first. */
+export type AgentListResponse = CursorPage<Agent>;
+/** GET /{tenant}/teams: a keyset page, newest first. */
+export type TeamListResponse = CursorPage<Team>;

@@ -8,7 +8,8 @@ export interface InboxFilters {
   channel: TicketChannel | "";
   categoryId: string;
   tags: string[];
-  sort: TicketSort;
+  /** The chosen order; empty is the default order for this person (defaultSort). */
+  sort: TicketSort | "";
 }
 
 export const EMPTY_FILTERS: InboxFilters = {
@@ -17,8 +18,27 @@ export const EMPTY_FILTERS: InboxFilters = {
   channel: "",
   categoryId: "",
   tags: [],
-  sort: "created_desc",
+  sort: "",
 };
+
+/**
+ * The order a list opens in: staff work to SLA, so their inbox opens with the nearest SLA target
+ * first; a customer sees their newest tickets first.
+ */
+export function defaultSort(staff: boolean): TicketSort {
+  return staff ? "sla_due" : "created_desc";
+}
+
+/** The order in effect: the chosen one, else the default. A customer never gets the SLA order. */
+export function effectiveSort(sort: TicketSort | "", staff: boolean): TicketSort {
+  if (!sort || (sort === "sla_due" && !staff)) return defaultSort(staff);
+  return sort;
+}
+
+/** Whether a stored order is one the list knows (saved views may hold an older value). */
+export function isTicketSort(v: unknown): v is TicketSort {
+  return v === "created_desc" || v === "created_asc" || v === "sla_due";
+}
 
 /** Page size of the inbox. The API allows up to 100. */
 export const INBOX_PAGE_SIZE = 25;
@@ -28,15 +48,15 @@ export function isFiltered(f: InboxFilters, term: string): boolean {
   return !!(term || f.status || f.priority || f.channel || f.categoryId || f.tags.length);
 }
 
-/** The list query for the filters; empty values are left out. */
-export function toListFilters(f: InboxFilters): TicketListFilters {
+/** The list query for the filters; empty values are left out and the order is the one in effect. */
+export function toListFilters(f: InboxFilters, staff: boolean): TicketListFilters {
   return {
     status: f.status || undefined,
     priority: f.priority || undefined,
     channel: f.channel || undefined,
     categoryId: f.categoryId || undefined,
     tags: f.tags.length ? f.tags.join(",") : undefined,
-    sort: f.sort,
+    sort: effectiveSort(f.sort, staff),
     limit: INBOX_PAGE_SIZE,
   };
 }
@@ -63,7 +83,7 @@ export function fromView(view: TicketView): { filters: InboxFilters; search: str
       channel: (v.channel as TicketChannel | undefined) ?? "",
       categoryId: v.categoryId ?? "",
       tags: Array.isArray(v.tags) ? v.tags.filter((t): t is string => typeof t === "string") : [],
-      sort: view.sort === "created_asc" ? "created_asc" : "created_desc",
+      sort: isTicketSort(view.sort) ? view.sort : "",
     },
     search: typeof v.search === "string" ? v.search : "",
   };

@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
 import { SearchableCombobox } from "@bengo-hub/shared-ui-lib/combobox";
 import { SearchInput, useDebouncedSearch } from "@bengo-hub/shared-ui-lib/search";
-import { useAdminArticleSearch, useDeleteArticle } from "@/hooks/useKB";
+import { useAdminArticleList, useDeleteArticle } from "@/hooks/useKB";
+import { flattenPages } from "@/hooks/useTickets";
+import { LoadMore } from "@/components/common/load-more";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { PERM } from "@/lib/rbac/permissions";
 import { PageHeader } from "@/components/common/page-header";
@@ -25,11 +27,12 @@ export default function AdminKBPage() {
   const { can } = useServicePermissions(orgSlug);
   const canManage = can(PERM.kbManage);
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
   const [status, setStatus] = useState<ArticleStatus | "">("");
-  const search = useDebouncedSearch({ onTermChange: () => setPage(1) });
-  const query = useAdminArticleSearch({ tenantSlug: orgSlug, status: status || undefined, page, limit }, search.term);
+  const search = useDebouncedSearch();
+  // Keyset pages: a new term or status starts again from the first page; later pages load on
+  // "Load more". There is no total.
+  const query = useAdminArticleList({ tenantSlug: orgSlug, status: status || undefined, limit: 25 }, search.term);
+  const rows = useMemo(() => flattenPages(query.data), [query.data]);
   const deleteArticle = useDeleteArticle(orgSlug);
   const [removing, setRemoving] = useState<KBArticle | null>(null);
 
@@ -42,8 +45,6 @@ export default function AdminKBPage() {
       }),
     [orgSlug, canManage, router],
   );
-
-  const total = query.data?.total ?? 0;
 
   const onRemove = async () => {
     if (!removing) return;
@@ -61,7 +62,7 @@ export default function AdminKBPage() {
       <PageHeader
         icon={BookOpen}
         title="Knowledge base"
-        subtitle={`${total} articles`}
+        subtitle="Newest first"
         actions={
           canManage ? (
             <Button onClick={() => router.push(orgRoute(orgSlug, "/admin/kb/new"))}>
@@ -73,7 +74,7 @@ export default function AdminKBPage() {
 
       <DataTable
         columns={columns}
-        rows={query.data?.data ?? []}
+        rows={rows}
         rowKey={(a) => a.id}
         loading={query.isLoading}
         loadingRows={5}
@@ -83,30 +84,23 @@ export default function AdminKBPage() {
         onRowClick={canManage ? (a) => router.push(orgRoute(orgSlug, `/admin/kb/${a.id}`)) : undefined}
         storageKey="ticketing.admin-kb.columns"
         maxBodyHeight={false}
-        page={page}
-        totalPages={Math.max(1, Math.ceil(total / limit))}
-        onPageChange={setPage}
-        total={total}
-        pageSize={limit}
-        pageSizeOptions={[10, 25, 50, 100]}
-        onPageSizeChange={(n) => {
-          setLimit(n);
-          setPage(1);
-        }}
         toolbar={
           <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <SearchInput search={search} busy={query.isFetching} placeholder="Search articles" />
+            <SearchInput search={search} busy={query.isFetching && !query.isFetchingNextPage} placeholder="Search articles" />
             <SearchableCombobox
               options={ARTICLE_STATUS_OPTIONS}
               value={status}
-              onChange={(v) => {
-                setStatus(v as ArticleStatus | "");
-                setPage(1);
-              }}
+              onChange={(v) => setStatus(v as ArticleStatus | "")}
               placeholder="All statuses"
             />
           </div>
         }
+      />
+      <LoadMore
+        shown={rows.length}
+        hasMore={!!query.hasNextPage}
+        loading={query.isFetchingNextPage}
+        onLoadMore={() => void query.fetchNextPage()}
       />
 
       <ConfirmDialog
