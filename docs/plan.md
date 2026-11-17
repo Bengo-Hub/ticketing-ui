@@ -14,14 +14,21 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 - **Layout.** Ticket detail in three panes on wide screens and stacked on phones. Admin pages for SLA policies, routing rules and categories, and edit sheets for agents and teams.
 - **Theme.** KPI cards in the maskani pattern and dark mode that follows the device.
 
+## Written on 2026-11-17, not yet built or deployed
+
+[Sprint 13](sprints/sprint-13-auth-and-roles.md) ports treasury-ui's sign-in flow and its people and roles screens:
+
+- **Sign-in flow.** The session store now uses Zustand's persist middleware under `ticketing-auth-storage`, the same shape as treasury-ui. A refresh or `/me` that auth-api refuses clears the session, and the app sends the person to SSO sign-in exactly once. The guard renders one neutral loader until the saved session is restored, so the server and the first client render always match (this fixes React error 418).
+- **People and roles.** `/admin/settings/team` and `/admin/settings/roles`, gated by `ticketing.rbac.view` or `ticketing.rbac.manage`, on ticketing-api's new role endpoints under `/api/v1/{tenant}/ticketing`.
+
 ## Stack
 
 | Area | Choice |
 |---|---|
 | Framework | Next.js 16.3 App Router, React 19.2, TypeScript 6 |
 | Styling | Tailwind CSS 4, scanning the shared-ui-lib dist through `@source` |
-| Shared components | `@bengo-hub/shared-ui-lib` v0.1.146 |
-| Data | TanStack Query 5, axios, Zustand for the session |
+| Shared components | `@bengo-hub/shared-ui-lib` v0.1.148 |
+| Data | TanStack Query 5, axios, Zustand with its persist middleware for the session |
 | Forms | React Hook Form with Zod |
 | Charts | recharts |
 | PWA | `@ducanh2912/next-pwa` and the shared `PwaInstallPrompt` (no service worker ships yet, see known issues) |
@@ -42,6 +49,9 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 | `/admin/sla/calendars` | `sla.view`; adding, changing and deleting need `sla.add`, `sla.change`, `sla.delete` | Business calendars: weekly hours, timezone and holidays |
 | `/admin/sla/report` | `analytics.view` | SLA compliance, averages and p90 by priority and team |
 | `/admin/settings` | `settings.manage` | Channels: the email forwarding address with auto-forward steps and its Waiting or Working status, the WhatsApp auto-ticketing switch, and the web widget embed snippet |
+| `/admin/settings/team` | `rbac.view`; adding people and giving or taking roles need `rbac.manage` | Users: everyone in the tenant with their roles, add a person by email, give a role (optionally until a date) and take one away |
+| `/admin/settings/roles` | `rbac.view`; every change needs `rbac.manage` | Roles: default and custom roles, create, copy, customise, rename, delete, the permission matrix by module and the 30 day change log |
+| `/[orgSlug]/auth/callback` | everyone | SSO code exchange; errors use the shared `SSOCallbackError` card |
 | `/[orgSlug]/unauthorized` | everyone | Permission refusal |
 | `/support`, `/support/track`, `/support/tickets/[emailToken]` | no account | Public create, track and reply with email codes |
 | `/support/widget?tenant=<slug>&theme=` | no account | The public create flow in a compact frame for `public/widget.js`; the only route any site may frame |
@@ -101,7 +111,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [0](sprints/sprint-0-foundations.md) | Foundations | Partial | Swahili, unit and e2e tests |
 | [1](sprints/sprint-1-customer-portal.md) | Customer portal and public support pages | Partial | Attachments, shared fields on the public pages, working ticket search |
 | [2](sprints/sprint-2-agent-workspace.md) | Agent workspace | Done | |
-| [3](sprints/sprint-3-admin-console.md) | Admin console | Partial | Role administration, adding agents from the user directory |
+| [3](sprints/sprint-3-admin-console.md) | Admin console | Partial | Adding agents from the user directory (role administration moved to sprint 13) |
 | [4](sprints/sprint-4-sla-visualization.md) | SLA visualization | Partial | Inbox sorted by SLA due time |
 | [5](sprints/sprint-5-knowledge-base.md) | Knowledge base | Partial | Public KB outside sign-in, category list, deflection |
 | [6](sprints/sprint-6-analytics.md) | Analytics | Partial | Agent, SLA and CSAT reports, filters, export |
@@ -111,6 +121,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [10](sprints/sprint-10-channels.md) | Channels | Partial | Settings with the forwarding status, the channel badge and filter, the WhatsApp window in the composer and the web widget are written but not yet built or tested; WhatsApp templates, threaded channel rendering and the notifications inbox note remain |
 | [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Pending | Rollup-backed dashboard, CSAT, leaderboard, export |
 | [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Pending | Suggested reply, summary, KB suggestions, deflection, public KB |
+| [13](sprints/sprint-13-auth-and-roles.md) | Sign-in flow, users and roles | Written | Type-check, lint and build; a check against the new ticketing-api role endpoints; the two sign-in fixes confirmed in production |
 
 ## Known issues and pending
 
@@ -126,6 +137,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | Comments page oldest first only, so a long thread opens at its start rather than its latest reply | API | Open |
 | The ticket list filters by one status at a time, so the agent queue tabs split loaded tickets in the browser | API | Open |
 | No route other than `/support/widget` sent a framing header, and neither does the ingress, so any site could frame the signed-in app | UI | Fixed 2026-11-17: every other route sends `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` (next.config.ts) |
+| A browser holding a session auth-api refused stayed on "Initializing session..." while `/me` was called again and again, and the sign-in guard rendered different text on the server and in the browser (React error 418) | UI | Written 2026-11-17 in sprint 13, not yet deployed |
 | Turbopack on Windows refuses the shared-ui-lib `@source` path through the pnpm junction, so local verification uses `next build --webpack` while CI builds with Turbopack on Linux | UI | Open |
 
 ## Environment

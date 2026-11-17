@@ -2,26 +2,26 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ShieldAlert } from "lucide-react";
+import { ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/base";
+import { useT } from "@/hooks/useT";
 
 export default function UnauthorizedPage() {
   const params = useParams();
-  const orgSlug = params.orgSlug as string;
+  const orgSlug = params?.orgSlug as string;
+  const { t } = useT();
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center flex-col gap-6 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
-        <ShieldAlert className="h-8 w-8 text-destructive" />
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 p-4 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
+        <ShieldX className="h-8 w-8 text-destructive" />
       </div>
-      <div>
-        <h1 className="text-2xl font-black text-foreground">Access Denied</h1>
-        <p className="mt-2 text-muted-foreground">
-          You don&apos;t have permission to access this page.
-        </p>
+      <div className="max-w-md">
+        <h1 className="text-2xl font-bold text-foreground">{t("auth.deniedTitle")}</h1>
+        <p className="mt-2 text-muted-foreground">{t("auth.deniedBody")}</p>
       </div>
       <Button asChild variant="outline">
-        <Link href={`/${orgSlug}/tickets`}>Go to Tickets</Link>
+        <Link href={orgSlug ? `/${orgSlug}/tickets` : "/"}>{t("auth.deniedBack")}</Link>
       </Button>
     </div>
   );

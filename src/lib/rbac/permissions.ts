@@ -35,6 +35,7 @@ export const PERM = {
   kbManage: "ticketing.kb.manage",
   analyticsView: "ticketing.analytics.view",
   settingsManage: "ticketing.settings.manage",
+  rbacView: "ticketing.rbac.view",
   rbacManage: "ticketing.rbac.manage",
 } as const;
 

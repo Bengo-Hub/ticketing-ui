@@ -8,6 +8,20 @@ export const NORMALISED_BASE_URL = DEFAULT_BASE_URL.endsWith("/")
 
 let accessTokenGetter: () => string | null = () => null;
 
+// The signed-in tenant, set by the auth store from the SSO profile (as treasury-ui's apiClient does).
+let tenantId: string | null = null;
+let tenantSlug: string | null = null;
+let platformOwner = false;
+
+export function setTenantContext(id: string | null, slug: string | null) {
+  tenantId = id || null;
+  tenantSlug = slug || null;
+}
+
+export function setPlatformOwner(value: boolean) {
+  platformOwner = value;
+}
+
 export const api = axios.create({
   baseURL: NORMALISED_BASE_URL,
   headers: {
@@ -25,14 +39,9 @@ export function authHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   const token = accessTokenGetter();
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (typeof window !== "undefined") {
-    const isPlatformOwner = localStorage.getItem("is_platform_owner") === "true";
-    if (!isPlatformOwner) {
-      const tenantId = localStorage.getItem("tenantId");
-      if (tenantId) headers["X-Tenant-ID"] = tenantId;
-      const tenantSlug = localStorage.getItem("tenantSlug");
-      if (tenantSlug) headers["X-Tenant-Slug"] = tenantSlug;
-    }
+  if (!platformOwner) {
+    if (tenantId) headers["X-Tenant-ID"] = tenantId;
+    if (tenantSlug) headers["X-Tenant-Slug"] = tenantSlug;
   }
   return headers;
 }
@@ -55,20 +64,22 @@ export function setOn401(callback: (() => void) | null) {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    // ticketing-api's own auth/me goes through the same refresh as every other call: the SSO /me is
+    // read with fetch in lib/auth/api.ts and never reaches this interceptor.
+    if (error.response?.status === 401 && error.config) {
       if (!accessTokenGetter()) return Promise.reject(error);
-      const url: string = error.config?.url ?? "";
-      if (!url.includes("/auth/me") && !error.config?._retried) {
+      if (!error.config._retried) {
         const sent = String(error.config?.headers?.Authorization ?? "").replace(/^Bearer\s+/i, "");
-        const { refreshAccessToken } = await import("@/lib/auth/token-refresh");
-        const newToken = await refreshAccessToken(sent || accessTokenGetter());
-        if (newToken) {
+        const { renewSession } = await import("@/lib/auth/token-refresh");
+        const outcome = await renewSession(sent || accessTokenGetter());
+        if ("token" in outcome) {
           error.config._retried = true;
-          error.config.headers.Authorization = `Bearer ${newToken}`;
+          error.config.headers.Authorization = `Bearer ${outcome.token}`;
           return api.request(error.config);
         }
-        on401Callback?.();
-      } else if (error.config?._retried) {
+        // A refused refresh ends the session; an outage keeps it and lets this request fail softly.
+        if ("rejected" in outcome) on401Callback?.();
+      } else {
         // Even a freshly renewed token was refused: the session is unusable, so send the person
         // to sign in instead of leaving a page where every save fails.
         on401Callback?.();

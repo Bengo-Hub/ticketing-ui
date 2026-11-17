@@ -131,7 +131,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </AccountPanel>
           </div>
         ) : (
-          <Button size="sm" onClick={() => void redirectToSSO(undefined, orgSlug)} className="rounded-xl px-4">
+          <Button size="sm" onClick={() => void redirectToSSO(orgSlug, window.location.href)} className="rounded-xl px-4">
             <LogIn className="h-4 w-4" />
             {t("common.signIn")}
           </Button>
