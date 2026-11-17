@@ -704,5 +704,50 @@
     "errorNetwork": "We could not reach the support desk. Check your connection and try again.",
     "errorBusy": "Too many requests just now. Please wait a few minutes and try again.",
     "errorServer": "That did not go through on our side. Please try again."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "How customers reach your support team.",
+    "noAccess": "You do not have permission to change ticketing settings.",
+    "channels": "Channels",
+    "channelsHint": "Choose how customer emails and WhatsApp messages reach your tickets.",
+    "loadFailed": "We could not load the channel settings.",
+    "email": {
+      "title": "Email",
+      "intro": "Forward your support mailbox to this address, and customer emails arrive here as tickets.",
+      "addressLabel": "Forwarding address",
+      "copy": "Copy",
+      "copiedShort": "Copied",
+      "copyAria": "Copy the forwarding address",
+      "copied": "Address copied",
+      "copyFailed": "Could not copy. Select the address and copy it by hand.",
+      "notConfigured": "Email intake is not available for this workspace yet.",
+      "howTo": "Set up an auto-forward from your support mailbox",
+      "gmailTitle": "Gmail or Google Workspace",
+      "gmail1": "On a computer, open Gmail, select Settings and then See all settings.",
+      "gmail2": "Open Forwarding and POP/IMAP, select Add a forwarding address and paste the address above.",
+      "gmail3": "Gmail sends a confirmation message to that address. It should appear here as a new ticket. Open the link in it to confirm.",
+      "gmail4": "Back in Forwarding and POP/IMAP, choose Forward a copy of incoming mail, pick the address, keep Gmail's copy in the inbox and select Save Changes.",
+      "outlookTitle": "Outlook or Microsoft 365",
+      "outlook1": "In Outlook on the web, open Settings, then Mail, then Forwarding.",
+      "outlook2": "Turn on forwarding and paste the address above.",
+      "outlook3": "Tick Keep a copy of forwarded messages and save.",
+      "outlook4": "On Microsoft 365, your admin may first need to allow forwarding to outside addresses.",
+      "cpanelTitle": "cPanel hosting",
+      "cpanel1": "In cPanel, open Email and then Forwarders.",
+      "cpanel2": "Select Add Forwarder and enter the address your customers write to.",
+      "cpanel3": "Choose Forward to email address, paste the address above and select Add Forwarder.",
+      "newMailOnly": "Forwarding copies new mail only. Messages already in the mailbox do not become tickets.",
+      "replies": "Replies to customers go out from the platform. Customers reply to the ticket email as they would to any message, and their answer joins the same ticket."
+    },
+    "whatsapp": {
+      "title": "WhatsApp",
+      "intro": "Messages sent to your business WhatsApp number join an open WhatsApp ticket from the same customer.",
+      "autoTicket": "Open a ticket for new WhatsApp messages",
+      "autoTicketOn": "On: a message that is not part of an open ticket opens a new one.",
+      "autoTicketOff": "Off: only messages on an already open ticket are added.",
+      "saved": "WhatsApp setting saved.",
+      "saveFailed": "The setting could not be saved. Please try again."
+    }
   }
 }

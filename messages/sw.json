@@ -704,5 +704,50 @@
     "errorNetwork": "Hatukuweza kufikia dawati la huduma. Angalia mtandao wako kisha ujaribu tena.",
     "errorBusy": "Kuna maombi mengi kwa sasa. Tafadhali subiri dakika chache kisha ujaribu tena.",
     "errorServer": "Ombi halikufanikiwa upande wetu. Tafadhali jaribu tena."
+  },
+  "settings": {
+    "title": "Mipangilio",
+    "subtitle": "Jinsi wateja wanavyofikia timu yako ya huduma.",
+    "noAccess": "Huna ruhusa ya kubadilisha mipangilio ya tiketi.",
+    "channels": "Njia za mawasiliano",
+    "channelsHint": "Chagua jinsi barua pepe na jumbe za WhatsApp za wateja zinavyofika kwenye tiketi zako.",
+    "loadFailed": "Hatukuweza kupakia mipangilio ya njia za mawasiliano.",
+    "email": {
+      "title": "Barua pepe",
+      "intro": "Elekeza barua za sanduku lako la huduma kwenye anwani hii, na barua pepe za wateja zitafika hapa kama tiketi.",
+      "addressLabel": "Anwani ya kuelekeza barua",
+      "copy": "Nakili",
+      "copiedShort": "Imenakiliwa",
+      "copyAria": "Nakili anwani ya kuelekeza barua",
+      "copied": "Anwani imenakiliwa",
+      "copyFailed": "Imeshindwa kunakili. Chagua anwani kisha uinakili mwenyewe.",
+      "notConfigured": "Kupokea barua pepe bado hakupatikani kwa eneo hili la kazi.",
+      "howTo": "Weka uelekezaji wa moja kwa moja kutoka kwa sanduku lako la barua la huduma",
+      "gmailTitle": "Gmail au Google Workspace",
+      "gmail1": "Kwenye kompyuta, fungua Gmail, chagua Settings kisha See all settings.",
+      "gmail2": "Fungua Forwarding and POP/IMAP, chagua Add a forwarding address kisha bandika anwani iliyo hapo juu.",
+      "gmail3": "Gmail itatuma ujumbe wa kuthibitisha kwenye anwani hiyo. Unapaswa kuonekana hapa kama tiketi mpya. Fungua kiungo kilichomo ili kuthibitisha.",
+      "gmail4": "Rudi kwenye Forwarding and POP/IMAP, chagua Forward a copy of incoming mail, chagua anwani hiyo, acha nakala ya Gmail kwenye inbox kisha uchague Save Changes.",
+      "outlookTitle": "Outlook au Microsoft 365",
+      "outlook1": "Kwenye Outlook ya mtandaoni, fungua Settings, kisha Mail, kisha Forwarding.",
+      "outlook2": "Washa forwarding kisha bandika anwani iliyo hapo juu.",
+      "outlook3": "Weka tiki kwenye Keep a copy of forwarded messages kisha uhifadhi.",
+      "outlook4": "Kwa Microsoft 365, huenda msimamizi wenu akahitaji kwanza kuruhusu kuelekeza barua kwa anwani za nje.",
+      "cpanelTitle": "Hosting ya cPanel",
+      "cpanel1": "Kwenye cPanel, fungua Email kisha Forwarders.",
+      "cpanel2": "Chagua Add Forwarder kisha uandike anwani ambayo wateja wako hutumia kukuandikia.",
+      "cpanel3": "Chagua Forward to email address, bandika anwani iliyo hapo juu kisha uchague Add Forwarder.",
+      "newMailOnly": "Uelekezaji unanakili barua mpya pekee. Barua ambazo tayari ziko kwenye sanduku hazitakuwa tiketi.",
+      "replies": "Majibu kwa wateja yanatumwa kutoka kwenye mfumo. Wateja hujibu barua pepe ya tiketi kama barua nyingine yoyote, na jibu lao linaongezwa kwenye tiketi hiyo hiyo."
+    },
+    "whatsapp": {
+      "title": "WhatsApp",
+      "intro": "Jumbe zinazotumwa kwa nambari ya WhatsApp ya biashara yako zinaongezwa kwenye tiketi ya WhatsApp iliyo wazi ya mteja huyo huyo.",
+      "autoTicket": "Fungua tiketi kwa jumbe mpya za WhatsApp",
+      "autoTicketOn": "Imewashwa: ujumbe ambao si sehemu ya tiketi iliyo wazi unafungua tiketi mpya.",
+      "autoTicketOff": "Imezimwa: ni jumbe za tiketi ambayo tayari iko wazi pekee zinazoongezwa.",
+      "saved": "Mpangilio wa WhatsApp umehifadhiwa.",
+      "saveFailed": "Mpangilio haukuweza kuhifadhiwa. Tafadhali jaribu tena."
+    }
   }
 }

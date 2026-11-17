@@ -41,7 +41,7 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 | `/admin/sla`, `/admin/routing` | `sla.view`, `routing.view` or manage | SLA policies and routing rules |
 | `/admin/sla/calendars` | `sla.view`; adding, changing and deleting need `sla.add`, `sla.change`, `sla.delete` | Business calendars: weekly hours, timezone and holidays |
 | `/admin/sla/report` | `analytics.view` | SLA compliance, averages and p90 by priority and team |
-| `/admin/settings` | `settings.manage` | Placeholder until sprint 10 |
+| `/admin/settings` | `settings.manage` | Channels: the email forwarding address with auto-forward steps, and the WhatsApp auto-ticketing switch |
 | `/[orgSlug]/unauthorized` | everyone | Permission refusal |
 | `/support`, `/support/track`, `/support/tickets/[emailToken]` | no account | Public create, track and reply with email codes |
 
@@ -100,14 +100,14 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [0](sprints/sprint-0-foundations.md) | Foundations | Partial | Swahili, unit and e2e tests |
 | [1](sprints/sprint-1-customer-portal.md) | Customer portal and public support pages | Partial | Attachments, shared fields on the public pages, working ticket search |
 | [2](sprints/sprint-2-agent-workspace.md) | Agent workspace | Done | |
-| [3](sprints/sprint-3-admin-console.md) | Admin console | Partial | Settings page, role administration, adding agents from the user directory |
+| [3](sprints/sprint-3-admin-console.md) | Admin console | Partial | Role administration, adding agents from the user directory |
 | [4](sprints/sprint-4-sla-visualization.md) | SLA visualization | Partial | Inbox sorted by SLA due time |
 | [5](sprints/sprint-5-knowledge-base.md) | Knowledge base | Partial | Public KB outside sign-in, category list, deflection |
 | [6](sprints/sprint-6-analytics.md) | Analytics | Partial | Agent, SLA and CSAT reports, filters, export |
 | [7](sprints/sprint-7-realtime.md) | Real-time updates | Partial | Toasts, unread count, push, presence |
 | [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Partial | @mentions (waits on shared-ui-lib v0.1.147), comment author names, keyset paging on the agents, teams and KB lists, offline inbox and queued replies, app shell, Playwright tests |
 | [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Partial | Calendars, policy settings, the SLA report and the paused clock are written but not yet built or tested; sort by SLA, escalation level on rows and the fresh-tenant test remain |
-| [10](sprints/sprint-10-channels.md) | Channels | Pending | Forwarding address with verify, WhatsApp toggle, channel views, widget |
+| [10](sprints/sprint-10-channels.md) | Channels | Partial | The settings page (forwarding address and WhatsApp switch) is written but not yet built or tested; the forwarding verify step waits on the API, and channel views, the WhatsApp composer and the widget remain |
 | [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Pending | Rollup-backed dashboard, CSAT, leaderboard, export |
 | [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Pending | Suggested reply, summary, KB suggestions, deflection, public KB |
 
