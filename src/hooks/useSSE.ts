@@ -5,6 +5,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { NORMALISED_BASE_URL } from "@/lib/api-client";
 import { openStream, type StreamMessage } from "@/lib/sse/stream";
 import { useAuthStore } from "@/store/auth";
+import { analyticsKey } from "@/hooks/useAnalytics";
 import { presenceKey } from "@/hooks/usePresence";
 import type { PresenceEntry, PresenceState } from "@/types/workspace";
 
@@ -61,11 +62,11 @@ function applyEvent(qc: QueryClient, slug: string, msg: StreamMessage) {
   switch (msg.event) {
     case "ticket.created":
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", slug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(slug) });
       break;
     case "ticket.updated":
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", slug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(slug) });
       if (id) void qc.invalidateQueries({ queryKey: ["ticket", slug, id] });
       break;
     case "comment.created":

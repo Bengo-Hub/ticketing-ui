@@ -1,27 +1,29 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { useT } from "@/hooks/useT";
 import { cn } from "@/lib/utils";
 
-function delta(value: number, before: number | undefined): { text: string; dir: -1 | 0 | 1 } | null {
-  if (before == null || Number.isNaN(before)) return null;
-  if (before === 0) return value === 0 ? { text: "level", dir: 0 } : null;
-  const pct = Math.round(((value - before) / Math.abs(before)) * 100);
-  if (pct === 0) return { text: "level", dir: 0 };
-  return { text: `${pct > 0 ? "up" : "down"} ${Math.abs(pct)}%`, dir: pct > 0 ? 1 : -1 };
-}
+/**
+ * How the API words a change: `percent` is a relative change (`*_pct`), `points` a difference in
+ * percentage points (compliance, satisfied share) and `score` a difference on the 1 to 5 CSAT scale.
+ */
+export type ChangeKind = "percent" | "points" | "score";
 
 /**
- * A headline figure with, when the API supplies one, its change against the previous period.
- * Direction is said in words with an arrow, never by colour alone. Cards whose figure has no
- * history (a live count) leave `previous` out and show no comparison line.
+ * A headline figure in the maskani-ui pattern. When `change` is given (the API's comparison with
+ * the previous period, null when there is nothing to compare) a line under the figure says it in
+ * words with an arrow, never by colour alone. Live counts with no history leave `change` out.
  */
 export function KpiCard({
   icon: Icon,
   label,
   value,
   display,
-  previous,
-  previousLabel = "previous period",
+  change,
+  changeKind = "percent",
+  previousLabel,
   footnote,
   loading,
   tone = "default",
@@ -30,20 +32,43 @@ export function KpiCard({
   label: string;
   value?: number;
   display?: ReactNode;
-  previous?: number;
+  change?: number | null;
+  changeKind?: ChangeKind;
   previousLabel?: string;
   footnote?: ReactNode;
   loading?: boolean;
   tone?: "default" | "success" | "warning" | "destructive";
 }) {
-  const d = value != null && previous != null ? delta(value, previous) : null;
-  const DeltaIcon = d ? (d.dir > 0 ? ArrowUpRight : d.dir < 0 ? ArrowDownRight : ArrowRight) : null;
+  const { t } = useT();
+  const period = previousLabel ?? t("kpi.previousPeriod");
   const iconTone = {
     default: "bg-primary/10 text-primary",
     success: "bg-success/10 text-success",
     warning: "bg-warning/10 text-warning",
     destructive: "bg-destructive/10 text-destructive",
   }[tone];
+
+  let compare: ReactNode = null;
+  if (change !== undefined) {
+    if (change === null || Number.isNaN(change)) {
+      compare = <span>{t("kpi.noCompare", { period })}</span>;
+    } else {
+      const size = changeKind === "score" ? Math.round(Math.abs(change) * 100) / 100 : Math.round(Math.abs(change) * 10) / 10;
+      const dir = size === 0 ? 0 : change > 0 ? 1 : -1;
+      const amount =
+        changeKind === "percent" ? `${size}%` : changeKind === "points" ? t("kpi.points", { n: size }) : String(size);
+      const DeltaIcon = dir > 0 ? ArrowUpRight : dir < 0 ? ArrowDownRight : ArrowRight;
+      const text = dir === 0 ? t("kpi.level") : t(dir > 0 ? "kpi.up" : "kpi.down", { amount });
+      compare = (
+        <span className="inline-flex items-center gap-1">
+          <DeltaIcon className="h-3.5 w-3.5 shrink-0 text-foreground" aria-hidden />
+          <span>
+            <span className="font-medium text-foreground">{text}</span> {t("kpi.onPeriod", { period })}
+          </span>
+        </span>
+      );
+    }
+  }
 
   return (
     <div className="flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-4">
@@ -58,20 +83,7 @@ export function KpiCard({
       ) : (
         <p className="text-2xl font-semibold tabular-nums tracking-tight">{display ?? value ?? "-"}</p>
       )}
-      {!loading && previous != null && (
-        <p className="text-xs text-muted-foreground">
-          {d && DeltaIcon ? (
-            <span className="inline-flex items-center gap-1">
-              <DeltaIcon className="h-3.5 w-3.5 text-foreground" aria-hidden />
-              <span>
-                <span className="font-medium text-foreground">{d.text}</span> on {previousLabel}
-              </span>
-            </span>
-          ) : (
-            <span>{previousLabel}: no comparable figure</span>
-          )}
-        </p>
-      )}
+      {!loading && compare && <p className="text-xs text-muted-foreground">{compare}</p>}
       {footnote && !loading && <p className="mt-auto text-xs text-muted-foreground">{footnote}</p>}
     </div>
   );

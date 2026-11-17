@@ -116,12 +116,6 @@ export interface AttachmentLink {
   expires_at: string;
 }
 
-/**
- * GET /{tenant}/tickets/stats answers `{ "stats": { "<status>": count } }`, all-time counts per
- * status. Statuses with no tickets may be absent.
- */
-export type TicketStats = Partial<Record<TicketStatus, number>>;
-
 export interface Category {
   id: string;
   tenant_id: string;
@@ -228,16 +222,4 @@ export interface UpdateTicketData {
 export interface AddCommentData {
   content: string;
   comment_type?: 'public' | 'internal';
-}
-
-export interface TrendPoint {
-  date: string;
-  created: number;
-  resolved: number;
-}
-
-export interface TicketAnalytics {
-  by_status: Record<string, number>;
-  by_priority: Record<string, number>;
-  trend: TrendPoint[];
 }

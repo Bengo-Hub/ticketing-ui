@@ -7,11 +7,9 @@ import type {
   CursorPage,
   PageResponse,
   Ticket,
-  TicketAnalytics,
   TicketComment,
   TicketListParams,
   TicketListResponse,
-  TicketStats,
   TicketStatus,
   UpdateCategoryData,
   UpdateTicketData,
@@ -122,18 +120,7 @@ export async function mergeTicket(tenantSlug: string, id: string, intoTicketId: 
   return data;
 }
 
-/** The API answers `{ stats: { <status>: count } }`. */
-export async function getTicketStats(tenantSlug: string): Promise<TicketStats> {
-  const { data } = await api.get<{ stats?: TicketStats }>(`api/v1/${tenantSlug}/tickets/stats`);
-  return data.stats ?? {};
-}
-
-export async function getTicketAnalytics(tenantSlug: string, days = 30): Promise<TicketAnalytics> {
-  const { data } = await api.get<TicketAnalytics>(`api/v1/${tenantSlug}/tickets/analytics`, {
-    params: { days },
-  });
-  return data;
-}
+// Ticket counts and trends come from the analytics routes in ./analytics.ts.
 
 // Categories. The list is paginated on the API; a tenant's category tree is small, so one page of
 // up to 100 covers it.

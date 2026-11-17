@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, HeadphonesIcon, Inbox, ShieldAlert } from "lucide-react";
+import { AlarmClock, CircleCheck, Clock, HeadphonesIcon, Inbox, ShieldAlert } from "lucide-react";
 import { DataTable } from "@bengo-hub/shared-ui-lib/data-table";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { flattenPages, useTicketList } from "@/hooks/useTickets";
+import { browserTimeZone } from "@/lib/analytics";
+import { PERM } from "@/lib/rbac/permissions";
+import { todayISO } from "@/lib/sla";
 import { useTicketStream } from "@/hooks/useSSE";
 import { useLookups } from "@/hooks/useLookups";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
@@ -38,7 +42,13 @@ export default function AgentInboxPage() {
   const orgSlug = params.orgSlug as string;
   useTicketStream(orgSlug);
   // "My tickets" filters by the agent record, not the SSO user id (tickets store the agent id).
-  const { agentId } = useServicePermissions(orgSlug);
+  const { agentId, can } = useServicePermissions(orgSlug);
+  // Resolved today and overdue come from the analytics stats, filtered to this agent, for people
+  // who may read analytics. A one-day window keeps the call to the live counts.
+  const today = todayISO();
+  const statsQuery = useMemo(() => ({ from: today, to: today, tz: browserTimeZone(), agent_id: agentId ?? undefined }), [today, agentId]);
+  const showStats = !!agentId && can(PERM.analyticsView);
+  const myStats = useAnalytics(orgSlug, "tickets", statsQuery, showStats);
   const { agentName, categoryName } = useLookups(orgSlug);
   const { t } = useT();
   const labels = useTicketLabels();
@@ -75,11 +85,17 @@ export default function AgentInboxPage() {
         </p>
       )}
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className={cn("grid grid-cols-2 gap-3", showStats ? "md:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4")}>
         <KpiCard icon={Inbox} label={t("agentQueue.active")} value={activeCount} loading={loading} />
         <KpiCard icon={Clock} label={t("agentQueue.pending")} value={pendingCount} loading={loading} />
         <KpiCard icon={ShieldAlert} label={t("agentQueue.pastSla")} value={breachedCount} loading={loading} tone="destructive" />
         <KpiCard icon={HeadphonesIcon} label={t("agentQueue.loaded")} value={mine.length} loading={loading} />
+        {showStats && (
+          <>
+            <KpiCard icon={CircleCheck} label={t("analytics.resolvedToday")} value={myStats.data?.stats.resolved_today} loading={myStats.isLoading} tone="success" />
+            <KpiCard icon={AlarmClock} label={t("analytics.overdue")} value={myStats.data?.stats.overdue} loading={myStats.isLoading} tone="destructive" />
+          </>
+        )}
       </section>
       {query.hasNextPage && <p className="text-xs text-muted-foreground">{t("agentQueue.countsLoaded")}</p>}
 

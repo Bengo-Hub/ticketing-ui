@@ -151,3 +151,32 @@ export function addPublicReply(
 ): Promise<{ comment_id?: string; created_at?: string }> {
   return post(`${ticketURL(tenantSlug, ticketNumber)}/comments`, { content }, { [TICKET_ACCESS_HEADER]: accessToken });
 }
+
+// The CSAT survey. The link in the resolved-ticket email carries the tenant id and a single-use
+// token; both routes take no sign-in. They answer 404 for an unknown or replaced token, 409 when
+// the survey was already answered and 410 when the link has expired.
+
+/** The ticket a survey token belongs to. */
+export interface CsatSurvey {
+  ticket_number: string;
+  subject: string;
+  expires_at: string;
+}
+
+/** The longest comment the API stores. */
+export const CSAT_COMMENT_MAX = 2000;
+
+function csatURL(tenant: string, suffix = ""): string {
+  return `${NORMALISED_BASE_URL}api/v1/${encodeURIComponent(tenant)}/public/csat${suffix}`;
+}
+
+/** Checks the token without using it up. */
+export function checkCsatToken(tenant: string, token: string): Promise<CsatSurvey> {
+  return post<CsatSurvey>(csatURL(tenant, "/check"), { token });
+}
+
+/** Stores the rating and uses up the token. */
+export async function submitCsat(tenant: string, token: string, score: number, comment: string): Promise<void> {
+  const trimmed = comment.trim();
+  await post(csatURL(tenant), { token, score, ...(trimmed ? { comment: trimmed } : {}) });
+}

@@ -15,10 +15,8 @@ import {
   createTicket,
   deleteTicket,
   getTicket,
-  getTicketAnalytics,
   getTicketComments,
   getTickets,
-  getTicketStats,
   getTicketTags,
   mergeTicket,
   updateTicket,
@@ -33,6 +31,7 @@ import type {
   UpdateTicketData,
 } from "@/types/tickets";
 import type { BulkUpdateData } from "@/types/workspace";
+import { analyticsKey } from "@/hooks/useAnalytics";
 
 /** Every row of the pages an infinite query has loaded, in order. */
 export function flattenPages<T>(data?: InfiniteData<CursorPage<T>>): T[] {
@@ -90,22 +89,13 @@ export function useTicketTags(tenantSlug: string, enabled = true) {
   });
 }
 
-export function useTicketStats(tenantSlug: string, enabled = true) {
-  return useQuery({
-    queryKey: ["ticket-stats", tenantSlug],
-    queryFn: () => getTicketStats(tenantSlug),
-    enabled: enabled && !!tenantSlug,
-    staleTime: 60_000,
-  });
-}
-
 export function useCreateTicket(tenantSlug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateTicketData) => createTicket(tenantSlug, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", tenantSlug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(tenantSlug) });
     },
   });
 }
@@ -130,7 +120,7 @@ export function useUpdateTicketStatus(tenantSlug: string) {
     onSuccess: (_data, variables) => {
       void qc.invalidateQueries({ queryKey: ["ticket", tenantSlug, variables.id] });
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", tenantSlug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(tenantSlug) });
     },
   });
 }
@@ -153,7 +143,7 @@ export function useDeleteTicket(tenantSlug: string) {
     mutationFn: (id: string) => deleteTicket(tenantSlug, id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", tenantSlug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(tenantSlug) });
     },
   });
 }
@@ -165,7 +155,7 @@ export function useBulkUpdate(tenantSlug: string) {
     mutationFn: (data: BulkUpdateData) => bulkUpdateTickets(tenantSlug, data),
     onSuccess: (_data, variables) => {
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", tenantSlug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(tenantSlug) });
       for (const id of variables.ids) void qc.invalidateQueries({ queryKey: ["ticket", tenantSlug, id] });
       if (variables.add_tags?.length) void qc.invalidateQueries({ queryKey: ["ticket-tags", tenantSlug] });
     },
@@ -184,7 +174,7 @@ export function useMergeTicket(tenantSlug: string, id: string) {
         void qc.invalidateQueries({ queryKey: ["ticket-attachments", tenantSlug, t] });
       }
       void qc.invalidateQueries({ queryKey: ["tickets"] });
-      void qc.invalidateQueries({ queryKey: ["ticket-stats", tenantSlug] });
+      void qc.invalidateQueries({ queryKey: analyticsKey(tenantSlug) });
     },
   });
 }
@@ -197,14 +187,5 @@ export function useAddComment(tenantSlug: string, ticketId: string) {
       void qc.invalidateQueries({ queryKey: ["ticket-comments", tenantSlug, ticketId] });
       void qc.invalidateQueries({ queryKey: ["ticket", tenantSlug, ticketId] });
     },
-  });
-}
-
-export function useTicketAnalytics(tenantSlug: string, days = 30, enabled = true) {
-  return useQuery({
-    queryKey: ["ticket-analytics", tenantSlug, days],
-    queryFn: () => getTicketAnalytics(tenantSlug, days),
-    enabled: enabled && !!tenantSlug,
-    staleTime: 60_000,
   });
 }

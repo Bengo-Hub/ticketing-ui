@@ -21,6 +21,12 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 - **Sign-in flow.** The session store now uses Zustand's persist middleware under `ticketing-auth-storage`, the same shape as treasury-ui. A refresh or `/me` that auth-api refuses clears the session, and the app sends the person to SSO sign-in exactly once. The guard renders one neutral loader until the saved session is restored, so the server and the first client render always match (this fixes React error 418).
 - **People and roles.** `/admin/settings/team` and `/admin/settings/roles`, gated by `ticketing.rbac.view` or `ticketing.rbac.manage`, on ticketing-api's new role endpoints under `/api/v1/{tenant}/ticketing`.
 
+[Sprint 11](sprints/sprint-11-analytics-csat.md) moves every count and chart onto ticketing-api's rollup routes and adds the CSAT survey:
+
+- **Old routes gone.** The API removed `GET /tickets/stats` and `GET /tickets/analytics`, and nothing in the UI calls them now. The dashboard, the agent inbox cards and the analytics page read `/api/v1/{tenant}/analytics/{tickets,agents,sla,csat}`, and the change against the previous period comes from the API.
+- **Analytics.** `/admin/analytics` has Tickets, Agents, SLA and CSAT views with KPI cards, trend charts, every breakdown the API returns, filters for dates, team, agent, category, channel and priority in the address bar, the browser's time zone, and PDF, CSV and XLSX exports of the same query.
+- **CSAT survey.** `/support/csat?tenant=&token=` (optional `&score=`) checks the survey token, shows the ticket and takes a rating from 1 to 5 with an optional comment. Already answered, expired and unknown links each get their own message.
+
 ## Stack
 
 | Area | Choice |
@@ -42,7 +48,8 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 | `/[orgSlug]/tickets`, `/tickets/new`, `/tickets/[ticketId]` | `tickets.view` or `tickets.view_own`, `tickets.add` | Ticket list, create, detail |
 | `/[orgSlug]/agent` | `tickets.view` | My inbox |
 | `/[orgSlug]/kb`, `/kb/[slug]` | `kb.view` | Knowledge base, signed in |
-| `/[orgSlug]/admin` and `/admin/analytics` | `analytics.view` | Dashboard and analytics |
+| `/[orgSlug]/admin` | `analytics.view` | Dashboard: live ticket counts, the last seven days against the seven before, agents and teams |
+| `/admin/analytics?view=&from=&to=&team=&agent=&category=&channel=&priority=` | `analytics.view` | Tickets, Agents, SLA and CSAT analytics from the rollup routes, with PDF, CSV and XLSX export |
 | `/admin/teams`, `/admin/agents` | `teams.view`, `agents.view` or manage | Teams and agents |
 | `/admin/kb`, `/admin/categories` | `kb.manage`, `categories.manage` | Knowledge base and categories |
 | `/admin/sla`, `/admin/routing` | `sla.view`, `routing.view` or manage | SLA policies and routing rules |
@@ -55,6 +62,7 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 | `/[orgSlug]/unauthorized` | everyone | Permission refusal |
 | `/support`, `/support/track`, `/support/tickets/[emailToken]` | no account | Public create, track and reply with email codes |
 | `/support/widget?tenant=<slug>&theme=` | no account | The public create flow in a compact frame for `public/widget.js`; the only route any site may frame |
+| `/support/csat?tenant=<tenant id>&token=<token>&score=` | no account | The CSAT survey from the resolved-ticket email; `score` is optional and preselects a rating |
 
 ## Find, Flip, Fix (read 2026-11-16)
 
@@ -114,12 +122,12 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [3](sprints/sprint-3-admin-console.md) | Admin console | Partial | Adding agents from the user directory (role administration moved to sprint 13) |
 | [4](sprints/sprint-4-sla-visualization.md) | SLA visualization | Partial | Inbox sorted by SLA due time |
 | [5](sprints/sprint-5-knowledge-base.md) | Knowledge base | Partial | Public KB outside sign-in, category list, deflection |
-| [6](sprints/sprint-6-analytics.md) | Analytics | Partial | Agent, SLA and CSAT reports, filters, export |
+| [6](sprints/sprint-6-analytics.md) | Analytics | Replaced | Rebuilt on the rollup routes in sprint 11 |
 | [7](sprints/sprint-7-realtime.md) | Real-time updates | Partial | Toasts, unread count, push, presence |
 | [8](sprints/sprint-8-agent-productivity.md) | Agent productivity, app shell and offline | Partial | @mentions (waits on shared-ui-lib v0.1.147), comment author names, keyset paging on the agents, teams and KB lists, offline inbox and queued replies, app shell, Playwright tests |
 | [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Partial | Calendars, policy settings, the SLA report and the paused clock are written but not yet built or tested; sort by SLA, escalation level on rows and the fresh-tenant test remain |
 | [10](sprints/sprint-10-channels.md) | Channels | Partial | Settings with the forwarding status, the channel badge and filter, the WhatsApp window in the composer and the web widget are written but not yet built or tested; WhatsApp templates, threaded channel rendering and the notifications inbox note remain |
-| [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Pending | Rollup-backed dashboard, CSAT, leaderboard, export |
+| [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Written | Type-check, lint and build; a check of every view and export against the deployed API; a real survey email rated once and refused the second time |
 | [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Pending | Suggested reply, summary, KB suggestions, deflection, public KB |
 | [13](sprints/sprint-13-auth-and-roles.md) | Sign-in flow, users and roles | Written | Type-check, lint and build; a check against the new ticketing-api role endpoints; the two sign-in fixes confirmed in production |
 
@@ -131,7 +139,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | The public support pages still use native form fields and a plain textarea | UI | Sprint 8 |
 | The ticket response carries only `sla_policy_id`, so the SLA panel fetches the policy and its calendar to name the clock, and people without `sla.view` see no clock line | API | Open |
 | Update requests cannot clear a field, because the API's `UpdateTicketRequest` uses pointers with `omitempty` | API | API sprint 9 |
-| Fields the UI needs and the API lacks: stats `resolved_today` and `overdue`, previous-period figures, a tenant user directory for people not yet provisioned in ticketing, a KB category list, comment author names | API | API sprints 9 and 12 |
+| Fields the UI needs and the API lacks: a tenant user directory for people not yet provisioned in ticketing, a KB category list, comment author names. Stats `resolved_today` and `overdue` and previous-period figures arrived with the API's analytics routes | API | API sprints 9 and 12 |
 | The API's OTP client is not on shared-service-client, because a retried call could replay a one-time code | API | Kept as is by design |
 | `tickets/handler.go` and `identity/handler.go` in ticketing-api are over 400 lines | API | API sprint 9 |
 | Comments page oldest first only, so a long thread opens at its start rather than its latest reply | API | Open |
