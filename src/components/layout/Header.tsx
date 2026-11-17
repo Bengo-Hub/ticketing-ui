@@ -15,6 +15,7 @@ import { PERM, type ServiceRole } from "@/lib/rbac/permissions";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { LanguageSwitch } from "@/components/common/language-switch";
 import { useT } from "@/hooks/useT";
+import { SUBSCRIPTIONS_UI_URL } from "@/lib/subscriptions";
 
 const SERVICE_URLS: Partial<Record<ServiceKey, string>> = {
   pos: process.env.NEXT_PUBLIC_POS_UI_URL ?? "https://pos.codevertexafrica.com",
@@ -25,7 +26,7 @@ const SERVICE_URLS: Partial<Record<ServiceKey, string>> = {
   ordering: process.env.NEXT_PUBLIC_ORDERING_UI_URL ?? "https://ordering.codevertexafrica.com",
   // Account Portal is the auth-ui site; sso.* is the auth API and has no pages.
   auth: process.env.NEXT_PUBLIC_AUTH_UI_URL ?? "https://accounts.codevertexafrica.com",
-  subscriptions: process.env.NEXT_PUBLIC_SUBSCRIPTIONS_UI_URL ?? "https://pricing.codevertexafrica.com",
+  subscriptions: SUBSCRIPTIONS_UI_URL,
   projects: process.env.NEXT_PUBLIC_PROJECTS_UI_URL ?? "https://projects.codevertexafrica.com",
   afya: process.env.NEXT_PUBLIC_HOSPITAL_UI_URL ?? "https://afya.codevertexafrica.com",
 };

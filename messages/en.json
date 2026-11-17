@@ -1066,5 +1066,67 @@
     "notFoundBody": "This link is not valid. It may have been replaced by a newer survey after the ticket was resolved again; please use the link in the latest email.",
     "incompleteTitle": "This link is incomplete",
     "incompleteBody": "Open the survey from the button in your email, or copy the whole link into your browser."
+  },
+  "ai": {
+    "usesCredit": "Uses 1 AI credit",
+    "creditUsed": "1 AI credit used",
+    "notChargedAgain": "Already answered, not charged again",
+    "outOfCredits": "Out of AI credits.",
+    "buyCredits": "Buy AI credits",
+    "unavailable": "AI is unavailable, try again.",
+    "failed": "The AI request did not go through.",
+    "checkBeforeSending": "Check before sending",
+    "tainted": "Part of this text came from ticket content that was flagged as untrusted. Read it carefully before you use it.",
+    "stoppedEarly": "The AI stopped early, so this text may be incomplete.",
+    "summary": {
+      "title": "Summary",
+      "action": "Summarize",
+      "again": "Summarize again",
+      "hint": "A short summary of the whole thread, internal notes included."
+    },
+    "reply": {
+      "action": "Suggest reply",
+      "filled": "A suggested reply is in the editor. Edit it before you send it.",
+      "editHint": "The suggested reply is not sent until you send it. Fill in anything in [square brackets] first."
+    },
+    "articles": {
+      "title": "Suggested articles",
+      "action": "Find articles",
+      "again": "Find again",
+      "none": "No published article matches this ticket.",
+      "insert": "Insert link in reply",
+      "inserted": "Link added to the reply.",
+      "private": "Staff only"
+    },
+    "draft": {
+      "title": "Knowledge base",
+      "hint": "Turn this ticket into a private draft article. Names, contact details and order numbers are left out, and nothing is published until someone reviews it.",
+      "action": "Draft KB article",
+      "created": "Draft saved: {title}",
+      "open": "Open the draft in the KB editor",
+      "askEditor": "Someone who manages the knowledge base can review and publish it.",
+      "notResolved": "Resolve or close the ticket before drafting an article from it."
+    },
+    "classify": {
+      "action": "Suggest category and priority",
+      "needText": "Write a subject or description first.",
+      "applied": "Selected {category} and {priority} priority. You can change them.",
+      "noCategory": "no matching category",
+      "injected": "This text looks like it tries to instruct the AI, so nothing was selected. Choose the category and priority yourself.",
+      "review": "This is only a suggestion. Check the category and priority before you create the ticket."
+    },
+    "settings": {
+      "section": "AI",
+      "sectionHint": "AI with Vera helps your team sort and answer tickets.",
+      "title": "AI with Vera",
+      "intro": "Vera suggests a category and priority for every new ticket, from any channel.",
+      "autoClassify": "Classify new tickets automatically",
+      "autoClassifyOn": "On: every new ticket is classified after it is saved, and an empty category is filled when Vera is confident.",
+      "autoClassifyOff": "Off: agents can still ask for a suggestion on the ticket form.",
+      "cost": "Each new ticket uses 1 AI credit from your prepaid AI credits. When the credits run out, tickets are still saved, only not classified.",
+      "saved": "AI setting saved.",
+      "saveFailed": "The setting could not be saved. Please try again.",
+      "loadFailed": "We could not load the AI settings."
+    }
   }
 }

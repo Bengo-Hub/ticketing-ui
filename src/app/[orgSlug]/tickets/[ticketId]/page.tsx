@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, GitMerge, Trash2 } from "lucide-react";
@@ -20,7 +20,10 @@ import { SLAStatusBadge } from "@/components/tickets/SLAStatusBadge";
 import { ChannelBadge } from "@/components/tickets/ChannelBadge";
 import { SLASidebar } from "@/components/tickets/SLASidebar";
 import { TicketConversation } from "@/components/tickets/TicketConversation";
-import { ReplyComposer } from "@/components/tickets/ReplyComposer";
+import { ReplyComposer, type ReplyComposerHandle } from "@/components/tickets/ReplyComposer";
+import { TicketSummary } from "@/components/ai/TicketSummary";
+import { SuggestedArticles } from "@/components/ai/SuggestedArticles";
+import { DraftArticle } from "@/components/ai/DraftArticle";
 import { TicketProperties } from "@/components/tickets/TicketProperties";
 import { TicketLinks } from "@/components/tickets/TicketLinks";
 import { MergeDialog } from "@/components/tickets/MergeDialog";
@@ -79,7 +82,7 @@ export default function TicketDetailPage() {
   useCommentStream(orgSlug, ticketId);
 
   const { t } = useT();
-  const { can, isStaff, profile } = useServicePermissions(orgSlug);
+  const { can, isStaff, isPlatformOwner, profile } = useServicePermissions(orgSlug);
   const { data: ticket, isLoading, isError } = useTicket(orgSlug, ticketId);
   const commentsQuery = useTicketComments(orgSlug, ticketId);
   const comments = useMemo(() => flattenPages(commentsQuery.data), [commentsQuery.data]);
@@ -90,6 +93,9 @@ export default function TicketDetailPage() {
   // tenant-wide view, as on the API.
   const staffDesk = isStaff && can(PERM.ticketsView);
   const presence = usePresence(orgSlug, ticketId, { enabled: staffDesk, selfUserId: profile?.user_id });
+  // A suggested article link goes into the reply editor through the composer's handle.
+  const composerRef = useRef<ReplyComposerHandle>(null);
+  const insertIntoReply = useCallback((html: string) => composerRef.current?.insert(html), []);
 
   if (isError) {
     return (
@@ -119,6 +125,12 @@ export default function TicketDetailPage() {
   const mergedIntoNumber = typeof meta.merged_into_number === "string" ? meta.merged_into_number : "";
   const canMerge = staffDesk && canChange && !mergedInto && ticket.status !== "closed" && ticket.status !== "cancelled";
   const canSeeFiles = can(PERM.attachmentsView, PERM.attachmentsViewOwn);
+  // AI with Vera (docs/ai.md): every route needs tickets.view, which customers never hold, plus
+  // comments.add for a suggested reply, kb.view for suggestions and kb.add for a draft article.
+  const aiSummary = staffDesk;
+  const aiReply = staffDesk && canReply;
+  const aiArticles = staffDesk && can(PERM.kbView);
+  const aiDraft = staffDesk && can(PERM.kbAdd) && (ticket.status === "resolved" || ticket.status === "closed");
   // Staff replying on a WhatsApp ticket see the 24-hour window; the requester's email (or the
   // legacy customer_email of older tickets) is where a reply still goes once it has closed.
   const requesterEmail =
@@ -199,6 +211,7 @@ export default function TicketDetailPage() {
       */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[16rem_minmax(0,1fr)_19rem]">
         <div className="min-w-0 space-y-4 xl:col-start-2 xl:row-start-1">
+          {aiSummary && <TicketSummary orgSlug={orgSlug} ticketId={ticket.id} exempt={isPlatformOwner} />}
           <TicketConversation
             ticket={ticket}
             comments={comments}
@@ -218,11 +231,25 @@ export default function TicketDetailPage() {
               allowAttachments={can(PERM.attachmentsAdd)}
               whatsapp={whatsapp}
               onTypingChange={staffDesk ? presence.setTyping : undefined}
+              aiReply={aiReply ? { exempt: isPlatformOwner } : undefined}
+              handleRef={composerRef}
             />
           )}
         </div>
         <aside className="min-w-0 space-y-4 xl:col-start-3 xl:row-start-1">
           {isStaff && <TicketProperties orgSlug={orgSlug} ticket={ticket} />}
+          {aiArticles && (
+            <SuggestedArticles
+              orgSlug={orgSlug}
+              ticketId={ticket.id}
+              exempt={isPlatformOwner}
+              canManageKb={can(PERM.kbManage)}
+              onInsert={canReply ? insertIntoReply : undefined}
+            />
+          )}
+          {aiDraft && (
+            <DraftArticle orgSlug={orgSlug} ticketId={ticket.id} exempt={isPlatformOwner} canOpenEditor={can(PERM.kbManage)} />
+          )}
           {canSeeFiles && <TicketAttachments orgSlug={orgSlug} ticketId={ticket.id} />}
           {staffDesk && <TicketLinks orgSlug={orgSlug} ticketId={ticket.id} canChange={canChange} />}
           {(ticket.sla_response_due_at || ticket.sla_resolution_due_at) && (

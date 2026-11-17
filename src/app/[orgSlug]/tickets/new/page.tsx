@@ -16,6 +16,11 @@ import { useCreateTicket } from "@/hooks/useTickets";
 import { useCategories } from "@/hooks/useCategories";
 import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { searchPublicArticles } from "@/lib/api/kb";
+import { classifyDraft } from "@/lib/api/ai";
+import { useAiAction } from "@/hooks/useAI";
+import { useT } from "@/hooks/useT";
+import { PERM } from "@/lib/rbac/permissions";
+import { AiButton, AiCreditHint, AiError } from "@/components/ai/AiStatus";
 import { useTicketLabels } from "@/lib/ticket-options";
 import { PageHeader } from "@/components/common/page-header";
 import { Field } from "@/components/common/field";
@@ -37,7 +42,10 @@ export default function NewTicketPage() {
   const params = useParams();
   const router = useRouter();
   const orgSlug = params.orgSlug as string;
-  const { isStaff } = useServicePermissions(orgSlug);
+  const { isStaff, isPlatformOwner, can } = useServicePermissions(orgSlug);
+  const { t } = useT();
+  // AI classify needs tickets.view and tickets.add (docs/ai.md), so customers never see it.
+  const canClassify = can(PERM.ticketsView) && can(PERM.ticketsAdd);
   const { data: categories = [] } = useCategories(orgSlug);
   const createTicket = useCreateTicket(orgSlug);
   const labels = useTicketLabels();
@@ -48,11 +56,34 @@ export default function NewTicketPage() {
     control,
     handleSubmit,
     watch,
+    getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { subject: "", description: "", priority: "normal", channel: "web", category_id: "" },
   });
+
+  // "Suggest category and priority": the click is the agent accepting, so the suggestion is
+  // preselected and stays editable. A draft that tried to instruct the AI preselects nothing.
+  const classify = useAiAction(
+    (key) =>
+      classifyDraft(
+        orgSlug,
+        { subject: getValues("subject").trim(), description: getValues("description"), channel: getValues("channel") },
+        key,
+      ),
+    (c) => {
+      if (c.injected) return;
+      const priority = schema.shape.priority.safeParse(c.priority);
+      if (priority.success) setValue("priority", priority.data, { shouldDirty: true });
+      if (c.category && categories.some((cat) => cat.id === c.category?.id && cat.is_active)) {
+        setValue("category_id", c.category.id, { shouldDirty: true });
+      }
+    },
+  );
+  const classification = classify.data;
+  const hasDraftText = (watch("subject") ?? "").trim() !== "" || toPlainText(watch("description")) !== "";
 
   // Knowledge base deflection: the subject is searched once typing pauses, older requests are aborted.
   const subjectTerm = useDebouncedValue((watch("subject") ?? "").trim());
@@ -160,6 +191,39 @@ export default function NewTicketPage() {
                 )}
               />
             </Field>
+
+            {canClassify && (
+              <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <AiButton pending={classify.isPending} onClick={classify.start} disabled={!hasDraftText}>
+                    {t("ai.classify.action")}
+                  </AiButton>
+                  <AiCreditHint credits={classify.isPending ? undefined : classification?.credits} exempt={isPlatformOwner} />
+                </div>
+                {!hasDraftText && <p className="text-xs text-muted-foreground">{t("ai.classify.needText")}</p>}
+                <AiError failure={classify.failure} onRetry={classify.retry} />
+                {classification && !classify.failure && (
+                  <div className="space-y-1 text-xs">
+                    {classification.injected ? (
+                      <p className="font-medium text-destructive">{t("ai.classify.injected")}</p>
+                    ) : (
+                      <>
+                        <p className="font-medium">
+                          {t("ai.classify.applied", {
+                            category: classification.category?.name ?? t("ai.classify.noCategory"),
+                            priority: labels.priority(classification.priority),
+                          })}
+                        </p>
+                        {classification.reasoning && <p className="text-muted-foreground">{classification.reasoning}</p>}
+                      </>
+                    )}
+                    {(classification.requires_human_review || classification.injected) && (
+                      <p className="text-warning">{t("ai.classify.review")}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Priority">

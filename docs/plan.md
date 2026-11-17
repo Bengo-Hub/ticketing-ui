@@ -16,6 +16,13 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 
 ## Written on 2026-11-17, not yet built or deployed
 
+[Sprint 12](sprints/sprint-12-ai-public-kb.md) adds AI with Vera on ticketing-api's `/ai` routes ([contract](../../ticketing-api/docs/ai.md)):
+
+- **Ticket detail.** Summarize, Suggest reply in the composer (it fills the editor and is never sent on its own), Suggested articles with a link insert for public articles, and Draft KB article on a resolved or closed ticket, which saves a private draft and links to it in the KB editor.
+- **Create form.** Suggest category and priority preselects both on the signed-in form; the agent can change them, and a draft that tried to instruct the AI preselects nothing.
+- **Cost and errors.** Each click sends a new `Idempotency-Key` and a retry reuses it. A cost line says 1 AI credit and disappears for the platform owner. Out of credits links to subscriptions-ui's billing page and AI unavailable offers a retry, each under its own button.
+- **Settings and live updates.** An AI card in admin settings holds the auto-classify switch, off by default. The `ticket.ai_classified` event refreshes the ticket and the lists.
+
 [Sprint 13](sprints/sprint-13-auth-and-roles.md) ports treasury-ui's sign-in flow and its people and roles screens:
 
 - **Sign-in flow.** The session store now uses Zustand's persist middleware under `ticketing-auth-storage`, the same shape as treasury-ui. A refresh or `/me` that auth-api refuses clears the session, and the app sends the person to SSO sign-in exactly once. The guard renders one neutral loader until the saved session is restored, so the server and the first client render always match (this fixes React error 418).
@@ -128,7 +135,7 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | [9](sprints/sprint-9-sla-admin.md) | SLA admin and inbox order | Partial | Calendars, policy settings, the SLA report and the paused clock are written but not yet built or tested; sort by SLA, escalation level on rows and the fresh-tenant test remain |
 | [10](sprints/sprint-10-channels.md) | Channels | Partial | Settings with the forwarding status, the channel badge and filter, the WhatsApp window in the composer and the web widget are written but not yet built or tested; WhatsApp templates, threaded channel rendering and the notifications inbox note remain |
 | [11](sprints/sprint-11-analytics-csat.md) | Analytics and CSAT | Written | Type-check, lint and build; a check of every view and export against the deployed API; a real survey email rated once and refused the second time |
-| [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Pending | Suggested reply, summary, KB suggestions, deflection, public KB |
+| [12](sprints/sprint-12-ai-public-kb.md) | AI with Vera and the public KB | Partial | AI features written, not yet built or checked against the deployed API; public KB and deflection on the public support form remain |
 | [13](sprints/sprint-13-auth-and-roles.md) | Sign-in flow, users and roles | Written | Type-check, lint and build; a check against the new ticketing-api role endpoints; the two sign-in fixes confirmed in production |
 
 ## Known issues and pending
@@ -140,6 +147,8 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | The ticket response carries only `sla_policy_id`, so the SLA panel fetches the policy and its calendar to name the clock, and people without `sla.view` see no clock line | API | Open |
 | Update requests cannot clear a field, because the API's `UpdateTicketRequest` uses pointers with `omitempty` | API | API sprint 9 |
 | Fields the UI needs and the API lacks: a tenant user directory for people not yet provisioned in ticketing, a KB category list, comment author names. Stats `resolved_today` and `overdue` and previous-period figures arrived with the API's analytics routes | API | API sprints 9 and 12 |
+| ticketing-api's `kb.Article` has no JSON tags, so the KB routes and the AI draft answer send Go field names (`ID`, `Title`, `IsPublic`), while the UI's `KBArticle` type reads `id`, `title` and `is_public`. The AI draft panel reads the Go names; the KB pages still need the API to add tags | API | Open |
+| The KB editor at `/admin/kb/{id}` is gated by `ticketing.kb.manage`, so someone holding only `ticketing.kb.add` can draft an article with AI but cannot open it | UI | Open |
 | The API's OTP client is not on shared-service-client, because a retried call could replay a one-time code | API | Kept as is by design |
 | `tickets/handler.go` and `identity/handler.go` in ticketing-api are over 400 lines | API | API sprint 9 |
 | Comments page oldest first only, so a long thread opens at its start rather than its latest reply | API | Open |

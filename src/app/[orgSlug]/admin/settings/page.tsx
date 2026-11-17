@@ -9,6 +9,7 @@ import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { useT } from "@/hooks/useT";
 import { PERM } from "@/lib/rbac/permissions";
 import { orgRoute } from "@/lib/utils";
+import { AiSettingsCard } from "./ai-settings";
 import { EmailChannel } from "./email-channel";
 import { WhatsAppChannel } from "./whatsapp-channel";
 import { WidgetChannel } from "./widget-channel";
@@ -69,6 +70,18 @@ export default function AdminSettingsPage() {
             </>
           )}
           {!permsLoading && <WidgetChannel orgSlug={orgSlug} />}
+        </section>
+      )}
+
+      {canManage && !permsLoading && (
+        <section className="space-y-4" aria-labelledby="settings-ai">
+          <div>
+            <h2 id="settings-ai" className="text-lg font-semibold">
+              {t("ai.settings.section")}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("ai.settings.sectionHint")}</p>
+          </div>
+          <AiSettingsCard orgSlug={orgSlug} />
         </section>
       )}
     </div>

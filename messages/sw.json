@@ -1066,5 +1066,67 @@
     "notFoundBody": "Kiungo hiki si sahihi. Huenda kimebadilishwa na utafiti mpya baada ya tiketi kutatuliwa tena; tafadhali tumia kiungo kilicho kwenye barua pepe ya mwisho.",
     "incompleteTitle": "Kiungo hiki hakijakamilika",
     "incompleteBody": "Fungua utafiti kupitia kitufe kilicho kwenye barua pepe yako, au nakili kiungo chote kwenye kivinjari chako."
+  },
+  "ai": {
+    "usesCredit": "Inatumia salio 1 la AI",
+    "creditUsed": "Salio 1 la AI limetumika",
+    "notChargedAgain": "Tayari limejibiwa, halitozwi tena",
+    "outOfCredits": "Salio la AI limekwisha.",
+    "buyCredits": "Nunua salio la AI",
+    "unavailable": "AI haipatikani kwa sasa, jaribu tena.",
+    "failed": "Ombi la AI halikufanikiwa.",
+    "checkBeforeSending": "Kagua kabla ya kutuma",
+    "tainted": "Sehemu ya maandishi haya imetokana na maudhui ya tiketi yaliyotiliwa shaka. Yasome kwa makini kabla ya kuyatumia.",
+    "stoppedEarly": "AI ilisimama mapema, kwa hiyo huenda maandishi haya hayajakamilika.",
+    "summary": {
+      "title": "Muhtasari",
+      "action": "Fupisha",
+      "again": "Fupisha tena",
+      "hint": "Muhtasari mfupi wa mazungumzo yote, pamoja na madokezo ya ndani."
+    },
+    "reply": {
+      "action": "Pendekeza jibu",
+      "filled": "Jibu lililopendekezwa liko kwenye kihariri. Lihariri kabla ya kulituma.",
+      "editHint": "Jibu lililopendekezwa halitumwi hadi wewe ulitume. Kwanza jaza chochote kilicho ndani ya [mabano mraba]."
+    },
+    "articles": {
+      "title": "Makala zinazopendekezwa",
+      "action": "Tafuta makala",
+      "again": "Tafuta tena",
+      "none": "Hakuna makala iliyochapishwa inayolingana na tiketi hii.",
+      "insert": "Weka kiungo kwenye jibu",
+      "inserted": "Kiungo kimeongezwa kwenye jibu.",
+      "private": "Wahudumu pekee"
+    },
+    "draft": {
+      "title": "Hazina ya maarifa",
+      "hint": "Geuza tiketi hii kuwa rasimu ya makala ya faragha. Majina, mawasiliano na nambari za oda huachwa nje, na hakuna kinachochapishwa hadi mtu aikague.",
+      "action": "Andaa rasimu ya makala",
+      "created": "Rasimu imehifadhiwa: {title}",
+      "open": "Fungua rasimu kwenye kihariri cha makala",
+      "askEditor": "Mtu anayesimamia hazina ya maarifa anaweza kuikagua na kuichapisha.",
+      "notResolved": "Tatua au funga tiketi kabla ya kuandaa makala kutoka kwayo."
+    },
+    "classify": {
+      "action": "Pendekeza kundi na kipaumbele",
+      "needText": "Kwanza andika kichwa au maelezo.",
+      "applied": "Imechagua {category} na kipaumbele {priority}. Unaweza kuvibadilisha.",
+      "noCategory": "hakuna kundi linalolingana",
+      "injected": "Maandishi haya yanaonekana kujaribu kuiamuru AI, kwa hiyo hakuna kilichochaguliwa. Chagua kundi na kipaumbele mwenyewe.",
+      "review": "Hili ni pendekezo tu. Kagua kundi na kipaumbele kabla ya kufungua tiketi."
+    },
+    "settings": {
+      "section": "AI",
+      "sectionHint": "AI ya Vera inasaidia timu yako kupanga na kujibu tiketi.",
+      "title": "AI ya Vera",
+      "intro": "Vera inapendekeza kundi na kipaumbele kwa kila tiketi mpya, kutoka njia yoyote.",
+      "autoClassify": "Panga tiketi mpya kiotomatiki",
+      "autoClassifyOn": "Imewashwa: kila tiketi mpya inapangwa baada ya kuhifadhiwa, na kundi tupu linajazwa Vera inapokuwa na uhakika.",
+      "autoClassifyOff": "Imezimwa: wahudumu bado wanaweza kuomba pendekezo kwenye fomu ya tiketi.",
+      "cost": "Kila tiketi mpya inatumia salio 1 la AI kutoka salio lako la AI la kulipia kabla. Salio likiisha, tiketi bado zinahifadhiwa, ila hazipangwi.",
+      "saved": "Mpangilio wa AI umehifadhiwa.",
+      "saveFailed": "Mpangilio haukuweza kuhifadhiwa. Tafadhali jaribu tena.",
+      "loadFailed": "Hatukuweza kupakia mipangilio ya AI."
+    }
   }
 }

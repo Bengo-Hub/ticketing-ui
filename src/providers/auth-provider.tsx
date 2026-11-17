@@ -14,9 +14,8 @@ import { useServicePermissions } from "@/hooks/useServicePermissions";
 import { useT } from "@/hooks/useT";
 import { isSubscription403, setOn401, setOnSubscription403, setPlatformOwner, setTenantContext } from "@/lib/api-client";
 import { isSessionRefusal } from "@/lib/auth/api";
+import { SUBSCRIPTIONS_UI_URL } from "@/lib/subscriptions";
 import { AUTH_STORAGE_KEY, useAuthStore } from "@/store/auth";
-
-const SUBSCRIPTIONS_UI_URL = process.env.NEXT_PUBLIC_SUBSCRIPTIONS_UI_URL ?? "https://pricing.codevertexafrica.com";
 
 function makeQueryClient() {
   return new QueryClient({

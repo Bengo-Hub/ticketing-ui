@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useImperativeHandle, useState, type Ref } from "react";
 import { Loader2, Lock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { RichTextEditor } from "@bengo-hub/shared-ui-lib/rich-text-editor";
 import { Button } from "@/components/ui/base";
 import { toPlainText } from "@/components/common/rich-text";
+import { AiAdvisory, AiButton, AiCreditHint, AiError } from "@/components/ai/AiStatus";
+import { appendHtml, plainToHtml } from "@/components/ai/html";
+import { useAiAction } from "@/hooks/useAI";
+import { suggestReply } from "@/lib/api/ai";
 import { AttachmentDropzone } from "@/components/tickets/attachments/AttachmentDropzone";
 import { MacroPicker } from "@/components/tickets/MacroPicker";
 import { WhatsAppWindow } from "@/components/tickets/WhatsAppWindow";
@@ -18,12 +22,20 @@ import { useT } from "@/hooks/useT";
 
 type Mode = "public" | "internal";
 
+/** What the ticket page can do to the composer: add HTML, such as a suggested article link. */
+export interface ReplyComposerHandle {
+  insert: (html: string) => void;
+}
+
 /**
  * Reply box under the conversation. Staff choose between a public reply, which the customer sees,
  * and an internal note, which only staff see, and can apply a macro or @mention a colleague.
  * Customers can only reply publicly. Files dropped on the box go up after the reply, attached to
  * it; files sent without text go up on their own. While the box has focus and text, the parent
  * hears "typing" for the collision warning.
+ *
+ * With `aiReply`, staff can ask for a suggested reply. It fills the editor as a public reply and is
+ * never sent on its own; the agent edits it and sends it like any reply.
  */
 export function ReplyComposer({
   orgSlug,
@@ -33,6 +45,8 @@ export function ReplyComposer({
   allowAttachments,
   onTypingChange,
   whatsapp,
+  aiReply,
+  handleRef,
 }: {
   orgSlug: string;
   ticketId: string;
@@ -42,6 +56,9 @@ export function ReplyComposer({
   onTypingChange?: (typing: boolean) => void;
   /** Set on a WhatsApp ticket for staff: the 24-hour window shows above a public reply. */
   whatsapp?: { windowExpiresAt: string | null; hasEmail: boolean };
+  /** Set when the agent may ask for a suggested reply; `exempt` hides the credit hint. */
+  aiReply?: { exempt: boolean };
+  handleRef?: Ref<ReplyComposerHandle>;
 }) {
   const { t } = useT();
   const { agents } = useLookups(orgSlug);
@@ -60,6 +77,19 @@ export function ReplyComposer({
   useEffect(() => {
     onTypingChange?.(typing);
   }, [typing, onTypingChange]);
+
+  useImperativeHandle(handleRef, () => ({ insert: (html: string) => setContent((prev) => appendHtml(prev, html)) }), []);
+
+  // The suggested reply is customer-facing, so it lands in a public reply after any text already typed.
+  const suggestion = useAiAction(
+    (key) => suggestReply(orgSlug, ticketId, key),
+    (data) => {
+      setMode("public");
+      setContent((prev) => appendHtml(prev, plainToHtml(data.reply)));
+      toast.success(t("ai.reply.filled"));
+    },
+  );
+  const suggested = suggestion.data;
 
   /** Uploads each file and reports the ones that did not go through. */
   const sendFiles = async (commentId?: string) => {
@@ -86,6 +116,7 @@ export function ReplyComposer({
     try {
       const comment = await addComment.mutateAsync({ content, comment_type: internal ? "internal" : "public" });
       setContent("");
+      suggestion.reset();
       toast.success(internal ? t("ticket.noteAdded") : t("ticket.replySent"));
       if (files.length) await sendFiles(comment.id);
     } catch {
@@ -122,8 +153,32 @@ export function ReplyComposer({
             ))}
           </div>
         )}
-        {allowMacros && <MacroPicker orgSlug={orgSlug} ticketId={ticketId} disabled={busy} />}
+        {(allowMacros || aiReply) && (
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {aiReply && (
+              <>
+                <AiCreditHint credits={suggestion.isPending ? undefined : suggested?.credits} exempt={aiReply.exempt} />
+                <AiButton pending={suggestion.isPending} onClick={suggestion.start} disabled={busy}>
+                  {t("ai.reply.action")}
+                </AiButton>
+              </>
+            )}
+            {allowMacros && <MacroPicker orgSlug={orgSlug} ticketId={ticketId} disabled={busy} />}
+          </div>
+        )}
       </div>
+
+      {aiReply && suggestion.failure && (
+        <div className="mb-3">
+          <AiError failure={suggestion.failure} onRetry={suggestion.retry} />
+        </div>
+      )}
+      {aiReply && suggested && !suggestion.failure && (
+        <div className="mb-3 space-y-2">
+          <p className="text-xs text-muted-foreground">{t("ai.reply.editHint")}</p>
+          <AiAdvisory notes={suggested.review_notes} tainted={suggested.tainted} stoppedEarly={suggested.run?.stopped_early} />
+        </div>
+      )}
 
       {whatsapp && !internal && (
         <div className="mb-3">

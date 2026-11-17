@@ -32,6 +32,7 @@ export const PERM = {
   routingView: "ticketing.routing.view",
   routingManage: "ticketing.routing.manage",
   kbView: "ticketing.kb.view",
+  kbAdd: "ticketing.kb.add",
   kbManage: "ticketing.kb.manage",
   analyticsView: "ticketing.analytics.view",
   settingsManage: "ticketing.settings.manage",

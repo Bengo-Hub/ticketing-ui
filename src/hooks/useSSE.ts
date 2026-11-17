@@ -65,6 +65,8 @@ function applyEvent(qc: QueryClient, slug: string, msg: StreamMessage) {
       void qc.invalidateQueries({ queryKey: analyticsKey(slug) });
       break;
     case "ticket.updated":
+    // Auto-classify may have filled the category of a new ticket (docs/ai.md).
+    case "ticket.ai_classified":
       void qc.invalidateQueries({ queryKey: ["tickets"] });
       void qc.invalidateQueries({ queryKey: analyticsKey(slug) });
       if (id) void qc.invalidateQueries({ queryKey: ["ticket", slug, id] });
