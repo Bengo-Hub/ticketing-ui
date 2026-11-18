@@ -792,6 +792,37 @@
       "optionLabel": "data-label=\"Need help?\" sets the button's tooltip and the name screen readers announce.",
       "optionColor": "data-color=\"#0f766e\" sets the button colour to match your brand.",
       "preview": "Open the widget form in a new tab"
+    },
+    "csat": {
+      "section": "Customer satisfaction",
+      "sectionHint": "Ask customers to rate the help they received once their ticket is resolved.",
+      "title": "Satisfaction survey",
+      "intro": "When a ticket with a customer email is resolved, the customer gets an email asking them to rate the help from 1 to 5.",
+      "enabled": "Send a survey when a ticket is resolved",
+      "enabledOn": "On: every resolved ticket with a customer email gets a survey link.",
+      "enabledOff": "Off: no survey is sent. Ratings already received stay in your reports.",
+      "linkDays": "Survey link works for (days)",
+      "linkDaysHint": "From {min} to {max} days. A link already sent keeps the time it was sent with.",
+      "linkDaysInvalid": "Enter a whole number of days from {min} to {max}.",
+      "saved": "Survey setting saved.",
+      "saveFailed": "The survey setting could not be saved. Please try again.",
+      "loadFailed": "We could not load the survey settings."
+    },
+    "helpCenter": {
+      "section": "Platform: help center",
+      "sectionHint": "These settings apply to the help center of every workspace. Only the platform owner sees them.",
+      "title": "Help center limits and cache",
+      "intro": "How often one visitor may use a workspace's public help center, and how long an article page is kept before it is read again.",
+      "cacheSeconds": "Article page cache (seconds)",
+      "readPerMinute": "Article and category reads per minute",
+      "suggestPerMinute": "Article suggestions per minute",
+      "viewPerMinute": "Article view counts per minute",
+      "votePerHour": "Helpful votes per hour",
+      "range": "Enter a whole number from {min} to {max}.",
+      "applies": "Limits count per workspace and per visitor. A saved change applies within a minute.",
+      "saved": "Help center settings saved.",
+      "saveFailed": "The help center settings could not be saved. Please try again.",
+      "loadFailed": "We could not load the help center settings."
     }
   },
   "auth": {

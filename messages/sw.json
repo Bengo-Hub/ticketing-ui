@@ -792,6 +792,37 @@
       "optionLabel": "data-label=\"Unahitaji msaada?\" huweka maandishi ya kidokezo cha kitufe na jina linalosomwa na visoma skrini.",
       "optionColor": "data-color=\"#0f766e\" huweka rangi ya kitufe ilingane na chapa yako.",
       "preview": "Fungua fomu ya msaada kwenye kichupo kipya"
+    },
+    "csat": {
+      "section": "Kuridhika kwa wateja",
+      "sectionHint": "Waombe wateja watathmini msaada waliopata tiketi yao ikishatatuliwa.",
+      "title": "Utafiti wa kuridhika",
+      "intro": "Tiketi yenye barua pepe ya mteja ikitatuliwa, mteja hupokea barua pepe inayomwomba atathmini msaada kutoka 1 hadi 5.",
+      "enabled": "Tuma utafiti tiketi ikitatuliwa",
+      "enabledOn": "Imewashwa: kila tiketi iliyotatuliwa yenye barua pepe ya mteja hupata kiungo cha utafiti.",
+      "enabledOff": "Imezimwa: hakuna utafiti unaotumwa. Tathmini zilizokwisha pokelewa zinabaki kwenye ripoti zako.",
+      "linkDays": "Kiungo cha utafiti kinafanya kazi kwa (siku)",
+      "linkDaysHint": "Kuanzia siku {min} hadi {max}. Kiungo kilichokwisha tumwa kinabaki na muda kilichotumwa nao.",
+      "linkDaysInvalid": "Weka idadi kamili ya siku kuanzia {min} hadi {max}.",
+      "saved": "Mpangilio wa utafiti umehifadhiwa.",
+      "saveFailed": "Mpangilio wa utafiti haukuweza kuhifadhiwa. Tafadhali jaribu tena.",
+      "loadFailed": "Hatukuweza kupakia mipangilio ya utafiti."
+    },
+    "helpCenter": {
+      "section": "Jukwaa: kituo cha msaada",
+      "sectionHint": "Mipangilio hii inahusu kituo cha msaada cha kila eneo la kazi. Mmiliki wa jukwaa pekee ndiye anayeiona.",
+      "title": "Mipaka na hifadhi ya muda ya kituo cha msaada",
+      "intro": "Mara ngapi mgeni mmoja anaweza kutumia kituo cha msaada cha umma cha eneo la kazi, na muda gani ukurasa wa makala unahifadhiwa kabla ya kusomwa tena.",
+      "cacheSeconds": "Hifadhi ya muda ya ukurasa wa makala (sekunde)",
+      "readPerMinute": "Usomaji wa makala na kategoria kwa dakika",
+      "suggestPerMinute": "Mapendekezo ya makala kwa dakika",
+      "viewPerMinute": "Hesabu za kutazamwa kwa makala kwa dakika",
+      "votePerHour": "Kura za manufaa kwa saa",
+      "range": "Weka namba kamili kuanzia {min} hadi {max}.",
+      "applies": "Mipaka inahesabiwa kwa kila eneo la kazi na kwa kila mgeni. Mabadiliko yaliyohifadhiwa yanaanza kutumika ndani ya dakika moja.",
+      "saved": "Mipangilio ya kituo cha msaada imehifadhiwa.",
+      "saveFailed": "Mipangilio ya kituo cha msaada haikuweza kuhifadhiwa. Tafadhali jaribu tena.",
+      "loadFailed": "Hatukuweza kupakia mipangilio ya kituo cha msaada."
     }
   },
   "auth": {

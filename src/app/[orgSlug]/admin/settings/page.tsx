@@ -10,7 +10,9 @@ import { useT } from "@/hooks/useT";
 import { PERM } from "@/lib/rbac/permissions";
 import { orgRoute } from "@/lib/utils";
 import { AiSettingsCard } from "./ai-settings";
+import { CsatSettingsCard } from "./csat-settings";
 import { EmailChannel } from "./email-channel";
+import { HelpCenterSettingsCard } from "./help-center-settings";
 import { WhatsAppChannel } from "./whatsapp-channel";
 import { WidgetChannel } from "./widget-channel";
 
@@ -18,8 +20,10 @@ export default function AdminSettingsPage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
   const { t } = useT();
-  const { can, isLoading: permsLoading } = useServicePermissions(orgSlug);
+  const { can, profile, isLoading: permsLoading } = useServicePermissions(orgSlug);
   const canManage = can(PERM.settingsManage);
+  // Platform settings are for the platform owner only; a tenant superuser is refused by the API.
+  const isPlatformOwner = !!profile?.is_platform_owner;
   const { data, isLoading, isError, isRefetching, refetch } = useChannelSettings(orgSlug, canManage);
 
   return (
@@ -82,6 +86,30 @@ export default function AdminSettingsPage() {
             <p className="text-sm text-muted-foreground">{t("ai.settings.sectionHint")}</p>
           </div>
           <AiSettingsCard orgSlug={orgSlug} />
+        </section>
+      )}
+
+      {canManage && !permsLoading && (
+        <section className="space-y-4" aria-labelledby="settings-csat">
+          <div>
+            <h2 id="settings-csat" className="text-lg font-semibold">
+              {t("settings.csat.section")}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("settings.csat.sectionHint")}</p>
+          </div>
+          <CsatSettingsCard orgSlug={orgSlug} />
+        </section>
+      )}
+
+      {isPlatformOwner && !permsLoading && (
+        <section className="space-y-4" aria-labelledby="settings-platform">
+          <div>
+            <h2 id="settings-platform" className="text-lg font-semibold">
+              {t("settings.helpCenter.section")}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("settings.helpCenter.sectionHint")}</p>
+          </div>
+          <HelpCenterSettingsCard orgSlug={orgSlug} />
         </section>
       )}
     </div>

@@ -23,6 +23,13 @@ Commit 053c298 (on top of 0e7b392) is live in production. It delivered:
 - **Cost and errors.** Each click sends a new `Idempotency-Key` and a retry reuses it. A cost line says 1 AI credit and disappears for the platform owner. Out of credits links to subscriptions-ui's billing page and AI unavailable offers a retry, each under its own button.
 - **Settings and live updates.** An AI card in admin settings holds the auto-classify switch, off by default. The `ticket.ai_classified` event refreshes the ticket and the lists.
 
+Settings out of code (owner decision 2026-11-17):
+
+- **CSAT card.** Admin settings has a Customer satisfaction section with the survey switch (on by default, saved when flipped) and how many days the survey link works (1 to 30, default 7, saved with its own button), on ticketing-api's `GET` and `PUT /{tenant}/settings/csat` (`settings.manage`).
+- **Help center card, platform owner only.** A "Platform: help center" section shows when the signed-in profile is the platform owner (`is_platform_owner`, not a tenant superuser): the article page cache in seconds (0 to 3600, default 60) and the public KB limits (reads 120 a minute, suggestions 60 a minute, view counts 60 a minute, votes 30 an hour, each 1 to 10000), on `GET` and `PUT /{tenant}/platform/settings/help-center`. The values apply to every tenant's help center.
+- **Article cache time from the API.** `src/lib/api/public-kb-server.ts` reads `article_cache_seconds` from the public `GET /{org}/kb/config` and keeps it for 5 minutes on the UI server; 0 turns the article cache off. While the API cannot be read the page uses 60 seconds and logs a warning. The number lives only in ticketing-api.
+- **Swahili strings** for both cards are in `messages/sw.json` under `settings.csat` and `settings.helpCenter`, for the owner's review.
+
 [Sprint 13](sprints/sprint-13-auth-and-roles.md) ports treasury-ui's sign-in flow and its people and roles screens:
 
 - **Sign-in flow.** The session store now uses Zustand's persist middleware under `ticketing-auth-storage`, the same shape as treasury-ui. A refresh or `/me` that auth-api refuses clears the session, and the app sends the person to SSO sign-in exactly once. The guard renders one neutral loader until the saved session is restored, so the server and the first client render always match (this fixes React error 418).
@@ -69,7 +76,7 @@ The carry-over of sprints 4, 8 and 9 reads the fields and orders of ticketing-ap
 | `/admin/sla`, `/admin/routing` | `sla.view`, `routing.view` or manage | SLA policies and routing rules |
 | `/admin/sla/calendars` | `sla.view`; adding, changing and deleting need `sla.add`, `sla.change`, `sla.delete` | Business calendars: weekly hours, timezone and holidays |
 | `/admin/sla/report` | `analytics.view` | SLA compliance, averages and p90 by priority and team |
-| `/admin/settings` | `settings.manage` | Channels: the email forwarding address with auto-forward steps and its Waiting or Working status, the WhatsApp auto-ticketing switch, and the web widget embed snippet |
+| `/admin/settings` | `settings.manage` | Channels: the email forwarding address with auto-forward steps and its Waiting or Working status, the WhatsApp auto-ticketing switch, and the web widget embed snippet; the AI auto-classify switch; the CSAT survey switch and link validity; for the platform owner only, the help center limits and article cache |
 | `/admin/settings/team` | `rbac.view`; adding people and giving or taking roles need `rbac.manage` | Users: everyone in the tenant with their roles, add a person by email, give a role (optionally until a date) and take one away |
 | `/admin/settings/roles` | `rbac.view`; every change needs `rbac.manage` | Roles: default and custom roles, create, copy, customise, rename, delete, the permission matrix by module and the 30 day change log |
 | `/[orgSlug]/auth/callback` | everyone | SSO code exchange; errors use the shared `SSOCallbackError` card |
@@ -164,13 +171,15 @@ The baseline the leaders share: views and saved filters, collision detection, ma
 | No route other than `/support/widget` sent a framing header, and neither does the ingress, so any site could frame the signed-in app | UI | Fixed 2026-11-17: every other route sends `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` (next.config.ts) |
 | A browser holding a session auth-api refused stayed on "Initializing session..." while `/me` was called again and again, and the sign-in guard rendered different text on the server and in the browser (React error 418) | UI | Written 2026-11-17 in sprint 13, not yet deployed |
 | Turbopack on Windows refuses the shared-ui-lib `@source` path through the pnpm junction, so local verification uses `next build --webpack` while CI builds with Turbopack on Linux | UI | Open |
+| The AI cost line before a request says 1 AI credit (`ai.usesCredit`, `ai.settings.cost`), but the API now charges each feature's price from marketflow-ai's registry; the answer's `credits.charged` is already the real figure | UI and API | Open: the API has no read of a feature's price before the call yet |
+| The new CSAT and help center cards have no automated UI test; the repo has only the Playwright Fix tests, whose mocks do not model the settings routes | UI | Open |
 | The help center article page read the article on the UI server with no cache, so every visitor's read reached ticketing-api from the UI server's IP and shared one rate limit bucket (120 a minute per tenant on that route, 300 a minute globally); a busy article or a crawler could make the page fail for everyone | UI and API | Written 2026-11-17, not yet deployed: see "Help center reads" below |
 
 ### Help center reads
 
 `/support/kb/[slug]` reads the article through `src/lib/api/public-kb-server.ts`:
 
-- **Page cache.** The article is kept in Next's data cache for 60 seconds under the tenant and slug only, so repeat views and crawlers mostly never reach ticketing-api. Only a 200 is kept; a 404, 429 or error answers that visit and is asked again on the next one. The cache lives on each UI pod, so with two pods an article is read at most twice a minute. An edit or unpublish shows on the public page within a minute.
+- **Page cache.** The article is kept in Next's data cache for the platform setting `article_cache_seconds` (60 seconds by default, read from ticketing-api's `GET /{org}/kb/config` and kept 5 minutes; 0 turns the cache off) under the tenant and slug only, so repeat views and crawlers mostly never reach ticketing-api. Only a 200 is kept; a 404, 429 or error answers that visit and is asked again on the next one. The cache lives on each UI pod, so with two pods an article is read at most twice per cache period. An edit or unpublish shows on the public page within the cache period.
 - **The visitor's own bucket.** The read behind a cache miss sends the visitor's IP in `X-Visitor-IP` and the shared `VISITOR_IP_FORWARD_KEY` in `X-Visitor-IP-Key`. The IP is the `X-Real-IP` the ingress in front of ticketing-ui set from Cloudflare's `CF-Connecting-IP`, which a browser cannot choose. ticketing-api trusts `X-Visitor-IP` only with the matching key and otherwise ignores it ([integrations](../../ticketing-api/docs/integrations.md), Client IP and the help center's server-side reads). With no key set, the header is not sent and reads fall back to the UI server's bucket, which the cache keeps small.
 - **Views.** The cached read asks with `count_view=false`, so a cache miss is not a view. The page then counts one view from the visitor's browser with `POST /api/v1/{tenant}/kb/articles/{id}/view`, once per page view. Crawlers that do not run scripts are not counted, and the view count on the page can be up to a minute old. When the server could not read the article, the browser reads it again itself and that read counts the view.
 
